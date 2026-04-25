@@ -74,8 +74,9 @@ class RoleGRPOTrainer:
         completions = [t.completion for t in self.pending_transitions]
         rewards = [t.reward for t in self.pending_transitions]
 
-        # TRL >= 0.11 exposes ``training_step_with_rollouts``; fall back to a
-        # generic ``step`` for older versions.
+        # If the installed TRL exposes a first-class rollout API, use it.
+        # Otherwise run our own GRPO-style policy-gradient step (whitened
+        # advantage + KL to the LoRA-disabled base policy).
         result: Dict[str, Any]
         if hasattr(self.trainer, "training_step_with_rollouts"):
             metrics = self.trainer.training_step_with_rollouts(
@@ -83,7 +84,7 @@ class RoleGRPOTrainer:
             )
             result = {"metrics": metrics}
         else:
-            metrics = _generic_grpo_step(self.trainer, prompts, completions, rewards)
+            metrics = _grpo_step(self.trainer, prompts, completions, rewards)
             result = {"metrics": metrics}
 
         result["role"] = self.role
@@ -167,49 +168,102 @@ def flush_episode(
     return [trainers[role].flush(peft_model) for role in ROLES if role in trainers]
 
 
-def _generic_grpo_step(
+def _grpo_step(
     trainer: Any,
     prompts: List[str],
     completions: List[str],
     rewards: List[float],
 ) -> Dict[str, Any]:
-    """Best-effort fallback for older TRL versions.
+    """One GRPO-style policy-gradient step.
 
-    Builds a minimal batch and invokes ``trainer.compute_loss`` then steps
-    the optimizer. Real production setups should use TRL's first-class
-    rollout API, but this keeps the smoke test runnable.
+    Loss = -E[ A_i * sum_t log π(o_{i,t} | q_i, o_{i,<t}) ] + beta * KL(π || π_ref)
+
+    PromptWar produces one rollout per game turn, so prompts in the batch
+    are heterogeneous and cannot be grouped by prompt id. We therefore use
+    *batch-level* reward whitening as the advantage — the same shape of
+    estimator GRPO uses inside a group, applied at batch granularity.
+
+    The reference policy π_ref is the LoRA-disabled base model, obtained
+    by entering ``model.disable_adapter()`` on the PeftModel. This gives
+    us a frozen reference for the KL penalty without holding a second
+    copy of the weights.
     """
     import torch  # type: ignore
+    import torch.nn.functional as F  # type: ignore
 
     tokenizer = trainer.processing_class
-    full_texts = [f"{prompt}{completion}" for prompt, completion in zip(prompts, completions)]
-    inputs = tokenizer(full_texts, return_tensors="pt", padding=True, truncation=True)
-    prompt_inputs = tokenizer(prompts, return_tensors="pt", padding=True, truncation=True)
+    model = trainer.model
+    model.train()
+    device = next(model.parameters()).device
 
-    device = next(trainer.model.parameters()).device
-    inputs = {k: v.to(device) for k, v in inputs.items()}
-    prompt_attention_mask = prompt_inputs["attention_mask"].to(device)
+    beta = float(getattr(getattr(trainer, "args", None), "beta", 0.004))
 
-    labels = inputs["input_ids"].clone()
-    labels[inputs["attention_mask"] == 0] = -100
-    for row_idx, prompt_len in enumerate(prompt_attention_mask.sum(dim=1).tolist()):
-        labels[row_idx, :prompt_len] = -100
+    # Tokenize prompts and (prompt+completion) separately so we can mask
+    # out prompt + padding tokens from the policy-gradient loss.
+    prompt_enc = tokenizer(prompts, return_tensors="pt", padding=True, truncation=True)
+    full_texts = [f"{p}{c}" for p, c in zip(prompts, completions)]
+    full_enc = tokenizer(full_texts, return_tensors="pt", padding=True, truncation=True)
 
+    input_ids = full_enc["input_ids"].to(device)
+    attention_mask = full_enc["attention_mask"].to(device)
+    prompt_lens = prompt_enc["attention_mask"].sum(dim=1).tolist()
+
+    completion_mask = attention_mask.clone()
+    for i, plen in enumerate(prompt_lens):
+        completion_mask[i, : min(plen, completion_mask.size(1))] = 0
+
+    rewards_t = torch.tensor(rewards, dtype=torch.float32, device=device)
+    if rewards_t.numel() > 1 and float(rewards_t.std()) > 1e-8:
+        advantages = (rewards_t - rewards_t.mean()) / (rewards_t.std() + 1e-8)
+    else:
+        # Single sample or zero variance: zero-centered advantage. Gradient
+        # contribution from this batch will be small but the KL term still
+        # keeps the policy anchored to the reference.
+        advantages = rewards_t - rewards_t.mean()
+
+    # Policy forward (LoRA active).
     with torch.enable_grad():
-        outputs = trainer.model(**inputs, labels=labels)
-        # Scale CE by reward as a crude REINFORCE proxy. NOT real GRPO —
-        # only a fallback used when TRL doesn't expose the rollout API.
-        scaled = outputs.loss * float(sum(rewards) / max(len(rewards), 1))
-        scaled.backward()
-        if trainer.optimizer is None:
-            trainer.create_optimizer()
-        trainer.optimizer.step()
-        trainer.optimizer.zero_grad()
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+        logits = outputs.logits[:, :-1, :]
+        targets = input_ids[:, 1:]
+        target_mask = completion_mask[:, 1:].float()
+
+        log_probs = F.log_softmax(logits, dim=-1)
+        token_logp = log_probs.gather(2, targets.unsqueeze(-1)).squeeze(-1)
+        per_sample_logp = (token_logp * target_mask).sum(dim=1)
+
+    # Reference forward (LoRA disabled → base model). Gradients off.
+    ref_token_logp: Optional["torch.Tensor"] = None
+    kl_total = torch.tensor(0.0, device=device)
+    disable_ctx = getattr(model, "disable_adapter", None)
+    if disable_ctx is not None:
+        with torch.no_grad():
+            with disable_ctx():
+                ref_outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+        ref_logits = ref_outputs.logits[:, :-1, :]
+        ref_log_probs = F.log_softmax(ref_logits, dim=-1)
+        ref_token_logp = ref_log_probs.gather(2, targets.unsqueeze(-1)).squeeze(-1)
+        kl_per_token = (token_logp - ref_token_logp) * target_mask
+        kl_total = kl_per_token.sum() / target_mask.sum().clamp(min=1.0)
+
+    pg_loss = -(advantages.detach() * per_sample_logp).mean()
+    loss = pg_loss + beta * kl_total
+
+    loss.backward()
+    if trainer.optimizer is None:
+        trainer.create_optimizer()
+    trainer.optimizer.step()
+    trainer.optimizer.zero_grad()
 
     return {
-        "loss": float(outputs.loss.detach()),
-        "scaled_loss": float(scaled.detach()),
-        "mean_reward": float(sum(rewards) / max(len(rewards), 1)),
+        "loss": float(loss.detach()),
+        "pg_loss": float(pg_loss.detach()),
+        "kl": float(kl_total.detach()) if ref_token_logp is not None else None,
+        "beta": beta,
+        "mean_reward": float(rewards_t.mean().detach()),
+        "reward_std": float(rewards_t.std().detach()) if rewards_t.numel() > 1 else 0.0,
+        "mean_advantage": float(advantages.mean().detach()),
+        "n_completion_tokens": int(target_mask.sum().detach()),
     }
 
 
