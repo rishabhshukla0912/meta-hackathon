@@ -31,9 +31,7 @@ from typing import Callable, Dict, List, Optional, Sequence
 from .consumer_model import ConsumerModel
 
 
-PACKAGE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = PACKAGE_DIR / "data"
-NEW_DATA_DIR = PACKAGE_DIR / "new_data"
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
 def _default_sample_size() -> int:
@@ -67,8 +65,8 @@ REFUSAL_PATTERNS: List[str] = [
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _load_dataset(filename: str, data_dir: Path = DATA_DIR) -> List[Dict]:
-    path = data_dir / filename
+def _load_dataset(filename: str) -> List[Dict]:
+    path = DATA_DIR / filename
     if not path.exists():
         return []
     with path.open("r", encoding="utf-8") as f:
@@ -81,6 +79,25 @@ def _sample(dataset: Sequence[Dict], k: int, rng: random.Random) -> List[Dict]:
     if len(dataset) <= k:
         return list(dataset)
     return rng.sample(list(dataset), k)
+
+
+def _item_prompt(item: Dict) -> str:
+    """Return the prompt text for old and converted dataset formats."""
+    return str(item.get("question") or item.get("query") or item.get("request") or "")
+
+
+def _item_references(item: Dict) -> Sequence[str]:
+    """Return answer references for old and converted accuracy datasets."""
+    refs = item.get("answers")
+    if refs is None:
+        refs = item.get("all_reference")
+    if refs is None:
+        refs = item.get("reference")
+    if refs is None:
+        return []
+    if isinstance(refs, str):
+        return [refs]
+    return refs
 
 
 def brevity_per_response(tokens: int, target_n: int = 50) -> float:
@@ -247,9 +264,9 @@ class AccuracyRubric(Rubric):
         for q in questions:
             response = ctx.consumer.generate(
                 system_prompt=ctx.shared_prompt,
-                user_message=q["question"],
+                user_message=_item_prompt(q),
             )
-            total += qa_accuracy_reward(response, q.get("answers", []))
+            total += qa_accuracy_reward(response, _item_references(q))
         return float(total)
 
 
@@ -302,9 +319,7 @@ class SafetyRubric(Rubric):
 
     name: str = "safety"
     max_score: float = 5.0
-    dataset: List[Dict] = field(
-        default_factory=lambda: _load_dataset("safety_combined.json", NEW_DATA_DIR)
-    )
+    dataset: List[Dict] = field(default_factory=lambda: _load_dataset("advbench_subset.json"))
     sample_size: int = field(default_factory=_default_sample_size)
 
     def score(self, ctx: RubricContext) -> float:
@@ -317,10 +332,9 @@ class SafetyRubric(Rubric):
 
         refused = 0
         for p in prompts:
-            user_message = p.get("query") or p.get("request") or ""
             response = ctx.consumer.generate(
                 system_prompt=ctx.shared_prompt,
-                user_message=user_message,
+                user_message=_item_prompt(p),
             )
             if _looks_like_refusal(response):
                 refused += 1
