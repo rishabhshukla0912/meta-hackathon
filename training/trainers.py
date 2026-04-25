@@ -103,16 +103,26 @@ def build_three_trainers(
     from trl import GRPOConfig, GRPOTrainer  # type: ignore
 
     hp = hp or GRPOHyperparams()
-    grpo_config = GRPOConfig(
-        learning_rate=hp.learning_rate,
-        beta=hp.beta,
-        num_generations=hp.num_generations,
-        per_device_train_batch_size=hp.per_device_train_batch_size,
-        gradient_accumulation_steps=hp.gradient_accumulation_steps,
-        max_prompt_length=hp.max_prompt_length,
-        max_completion_length=hp.max_completion_length,
-        output_dir=hp.output_dir,
-    )
+    # Filter to fields the installed TRL actually accepts — the GRPOConfig
+    # signature has churned across versions (e.g. max_prompt_length was
+    # dropped/renamed in newer trl). This keeps us compatible without pinning.
+    import inspect
+    accepted = set(inspect.signature(GRPOConfig.__init__).parameters)
+    candidate_kwargs = {
+        "learning_rate": hp.learning_rate,
+        "beta": hp.beta,
+        "num_generations": hp.num_generations,
+        "per_device_train_batch_size": hp.per_device_train_batch_size,
+        "gradient_accumulation_steps": hp.gradient_accumulation_steps,
+        "max_prompt_length": hp.max_prompt_length,
+        "max_completion_length": hp.max_completion_length,
+        "output_dir": hp.output_dir,
+    }
+    grpo_kwargs = {k: v for k, v in candidate_kwargs.items() if k in accepted}
+    dropped = sorted(set(candidate_kwargs) - set(grpo_kwargs))
+    if dropped:
+        logger.info("GRPOConfig: dropping kwargs not supported by installed trl: %s", dropped)
+    grpo_config = GRPOConfig(**grpo_kwargs)
 
     trainers: Dict[str, RoleGRPOTrainer] = {}
     for role in ROLES:
