@@ -31,6 +31,9 @@ COPY . /app/env
 # For standalone builds, openenv will be installed via pyproject.toml
 WORKDIR /app/env
 
+# Keep the project virtual environment at /app/.venv instead of /app/env/.venv.
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
+
 # Ensure uv is available (for local builds where base image lacks it)
 RUN if ! command -v uv >/dev/null 2>&1; then \
         curl -LsSf https://astral.sh/uv/install.sh | sh && \
@@ -60,7 +63,7 @@ FROM ${BASE_IMAGE}
 WORKDIR /app
 
 # Copy the virtual environment from builder
-COPY --from=builder /app/env/.venv /app/.venv
+COPY --from=builder /app/.venv /app/.venv
 
 # Copy the environment code
 COPY --from=builder /app/env /app/env

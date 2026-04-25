@@ -63,3 +63,7 @@ packages = [
 
 [tool.setuptools.package-data]
 "PromptWar_env" = ["data/*.json"]
+
+[tool.pyright]
+venvPath = ".."
+venv = ".venv"
