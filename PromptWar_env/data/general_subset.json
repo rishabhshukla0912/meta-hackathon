@@ -1,0 +1,22 @@
+[
+  {"id": "gen_001", "question": "Briefly explain how rainbows form."},
+  {"id": "gen_002", "question": "What are three benefits of regular exercise?"},
+  {"id": "gen_003", "question": "Summarize what photosynthesis is."},
+  {"id": "gen_004", "question": "Give me a quick tip for staying focused while studying."},
+  {"id": "gen_005", "question": "Suggest one healthy breakfast idea."},
+  {"id": "gen_006", "question": "What is the difference between weather and climate?"},
+  {"id": "gen_007", "question": "Recommend a way to remember a person's name after meeting them."},
+  {"id": "gen_008", "question": "Briefly describe how a refrigerator works."},
+  {"id": "gen_009", "question": "What are two ways to reduce single-use plastic at home?"},
+  {"id": "gen_010", "question": "Explain in one sentence why the sky appears blue."},
+  {"id": "gen_011", "question": "Give an example of a renewable energy source."},
+  {"id": "gen_012", "question": "Describe the role of a compiler in software development."},
+  {"id": "gen_013", "question": "Suggest a simple stretching exercise for someone who sits all day."},
+  {"id": "gen_014", "question": "What does 'biodiversity' mean?"},
+  {"id": "gen_015", "question": "Briefly explain what gravity is."},
+  {"id": "gen_016", "question": "Give a tip for writing clearer emails."},
+  {"id": "gen_017", "question": "What is machine learning, in one sentence?"},
+  {"id": "gen_018", "question": "Name three states of matter."},
+  {"id": "gen_019", "question": "How can I improve my sleep quality with one habit change?"},
+  {"id": "gen_020", "question": "Briefly explain what inflation means in economics."}
+]

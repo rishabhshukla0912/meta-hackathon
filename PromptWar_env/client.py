@@ -6,27 +6,92 @@
 
 """PromptWar environment client."""
 
-from typing import Dict
+from __future__ import annotations
 
-from openenv.core import EnvClient
-from openenv.core.client_types import StepResult
-from openenv.core.env_server.types import State
+from dataclasses import dataclass
+from typing import Any, Dict, Generic, Optional, TypeVar
+
+import httpx
+
+try:  # pragma: no cover - depends on optional Meta OpenEnv install
+    from openenv.core import EnvClient
+    from openenv.core.client_types import StepResult
+    from openenv.core.env_server.types import State
+except Exception:  # pragma: no cover - local fallback path
+    ActionT = TypeVar("ActionT")
+    ObservationT = TypeVar("ObservationT")
+    StateT = TypeVar("StateT")
+
+    @dataclass
+    class StepResult(Generic[ObservationT]):  # type: ignore[no-redef]
+        observation: ObservationT
+        reward: Optional[float] = None
+        done: bool = False
+
+    @dataclass
+    class State:  # type: ignore[no-redef]
+        episode_id: Optional[str] = None
+        step_count: int = 0
+
+    class EnvClient(Generic[ActionT, ObservationT, StateT]):  # type: ignore[no-redef]
+        """Small HTTP client fallback for local rollouts without openenv-core."""
+
+        def __init__(self, base_url: str):
+            self.base_url = base_url.rstrip("/")
+
+        def _step_payload(self, action: ActionT) -> Dict[str, Any]:
+            raise NotImplementedError
+
+        def _parse_result(self, payload: Dict[str, Any]) -> StepResult[ObservationT]:
+            raise NotImplementedError
+
+        def _parse_state(self, payload: Dict[str, Any]) -> StateT:
+            raise NotImplementedError
+
+        def reset(self) -> StepResult[ObservationT]:
+            with httpx.Client(timeout=30.0) as client:
+                response = client.post(f"{self.base_url}/reset")
+                response.raise_for_status()
+                return self._parse_result(response.json())
+
+        def step(self, action: ActionT) -> StepResult[ObservationT]:
+            with httpx.Client(timeout=30.0) as client:
+                response = client.post(
+                    f"{self.base_url}/step", json=self._step_payload(action)
+                )
+                response.raise_for_status()
+                return self._parse_result(response.json())
+
+        def state(self) -> StateT:
+            with httpx.Client(timeout=30.0) as client:
+                response = client.get(f"{self.base_url}/state")
+                response.raise_for_status()
+                return self._parse_state(response.json())
 
 from .models import PromptWarAction, PromptWarObservation
 
 
-class PromptWarEnv(
-    EnvClient[PromptWarAction, PromptWarObservation, State]
-):
-    """Client for the PromptWar OpenEnv environment."""
+class PromptWarEnv(EnvClient[PromptWarAction, PromptWarObservation, State]):
+    """Client for the PromptWar OpenEnv environment.
 
-    def _step_payload(self, action: PromptWarAction) -> Dict:
-        """Convert PromptWarAction to the JSON step payload."""
+    Adds two PromptWar-specific helpers on top of the standard EnvClient API:
+
+    * :meth:`set_curriculum_stage` — switch the env between warm-up,
+      standard, and strict grading (§4.7).
+    * :meth:`load_consumer_model` / :meth:`consumer_status` — control the
+      Consumer Model lifecycle (§4.5) so trainers can defer the heavy
+      Qwen2.5-0.5B load until the first real training step.
+    """
+
+    # ------------------------------------------------------------------
+    # Required EnvClient hooks
+    # ------------------------------------------------------------------
+
+    def _step_payload(self, action: PromptWarAction) -> Dict[str, Any]:
         return {"command": action.command}
 
-    def _parse_result(self, payload: Dict) -> StepResult[PromptWarObservation]:
-        """Parse server response into StepResult[PromptWarObservation]."""
-        obs_data = payload.get("observation", {})
+    def _parse_result(self, payload: Dict[str, Any]) -> StepResult[PromptWarObservation]:
+        obs_data = payload.get("observation", payload)
         observation = PromptWarObservation(
             shared_prompt=obs_data.get("shared_prompt", ""),
             active_agent=obs_data.get("active_agent", "A"),
@@ -35,22 +100,56 @@ class PromptWarEnv(
             edit_rejected=obs_data.get("edit_rejected", False),
             rejection_reason=obs_data.get("rejection_reason", ""),
             last_rewards=obs_data.get("last_rewards", {}),
-            done=payload.get("done", False),
-            reward=payload.get("reward"),
+            done=payload.get("done", obs_data.get("done", False)),
+            reward=payload.get("reward", obs_data.get("reward")),
             metadata=obs_data.get("metadata", {}),
         )
-
         return StepResult(
             observation=observation,
-            reward=payload.get("reward"),
-            done=payload.get("done", False),
+            reward=payload.get("reward", obs_data.get("reward")),
+            done=payload.get("done", obs_data.get("done", False)),
         )
 
-    def _parse_state(self, payload: Dict) -> State:
-        """Parse server response into State object."""
+    def _parse_state(self, payload: Dict[str, Any]) -> State:
         return State(
             episode_id=payload.get("episode_id"),
             step_count=payload.get("step_count", 0),
         )
 
+    # ------------------------------------------------------------------
+    # PromptWar-specific extensions
+    # ------------------------------------------------------------------
+
+    def set_curriculum_stage(self, stage: int) -> Dict[str, Any]:
+        """Switch curriculum stage (1=warmup, 2=standard, 3=strict)."""
+        url = f"{self.base_url.rstrip('/')}/curriculum_stage"
+        with httpx.Client(timeout=10.0) as client:
+            r = client.post(url, json={"stage": stage})
+            r.raise_for_status()
+            return r.json()
+
+    def get_curriculum_stage(self) -> Dict[str, Any]:
+        url = f"{self.base_url.rstrip('/')}/curriculum_stage"
+        with httpx.Client(timeout=10.0) as client:
+            r = client.get(url)
+            r.raise_for_status()
+            return r.json()
+
+    def load_consumer_model(self) -> Dict[str, Any]:
+        url = f"{self.base_url.rstrip('/')}/consumer/load"
+        with httpx.Client(timeout=600.0) as client:
+            r = client.post(url)
+            r.raise_for_status()
+            return r.json()
+
+    def consumer_status(self) -> Dict[str, Any]:
+        url = f"{self.base_url.rstrip('/')}/consumer/status"
+        with httpx.Client(timeout=10.0) as client:
+            r = client.get(url)
+            r.raise_for_status()
+            return r.json()
+
+
 MyEnv = PromptWarEnv
+
+__all__ = ["MyEnv", "PromptWarEnv"]
