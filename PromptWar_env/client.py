@@ -60,15 +60,18 @@ class EnvClient(Generic[ActionT, ObservationT, StateT]):
         raise NotImplementedError
 
     def reset(self) -> StepResult[ObservationT]:
+        # OpenEnv ≥0.2 ResetRequest accepts {} — both seed and episode_id are optional.
         with httpx.Client(timeout=self._timeout) as client:
-            response = client.post(f"{self.base_url}/reset")
+            response = client.post(f"{self.base_url}/reset", json={})
             response.raise_for_status()
             return self._parse_result(response.json())
 
     def step(self, action: ActionT) -> StepResult[ObservationT]:
+        # OpenEnv StepRequest expects {"action": {...}}, not the action dict at the top level.
         with httpx.Client(timeout=self._timeout) as client:
             response = client.post(
-                f"{self.base_url}/step", json=self._step_payload(action)
+                f"{self.base_url}/step",
+                json={"action": self._step_payload(action)},
             )
             response.raise_for_status()
             return self._parse_result(response.json())
