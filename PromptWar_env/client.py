@@ -13,18 +13,17 @@ from typing import Any, Dict, Generic, Optional, TypeVar
 
 import httpx
 
+# Try to reuse OpenEnv's StepResult/State as plain types. The EnvClient
+# itself is intentionally NOT inherited: in recent openenv-core (≥0.2) it
+# became an async WebSocket client, but PromptWar's trainer + role_router
+# code is sync-HTTP. We always use the local sync EnvClient defined below.
 try:  # pragma: no cover - depends on optional Meta OpenEnv install
-    from openenv.core import EnvClient
     from openenv.core.client_types import StepResult
     from openenv.core.env_server.types import State
 except Exception:  # pragma: no cover - local fallback path
-    ActionT = TypeVar("ActionT")
-    ObservationT = TypeVar("ObservationT")
-    StateT = TypeVar("StateT")
-
     @dataclass
-    class StepResult(Generic[ObservationT]):  # type: ignore[no-redef]
-        observation: ObservationT
+    class StepResult(Generic[TypeVar("ObservationT")]):  # type: ignore[no-redef,misc]
+        observation: Any
         reward: Optional[float] = None
         done: bool = False
 
@@ -33,40 +32,62 @@ except Exception:  # pragma: no cover - local fallback path
         episode_id: Optional[str] = None
         step_count: int = 0
 
-    class EnvClient(Generic[ActionT, ObservationT, StateT]):  # type: ignore[no-redef]
-        """Small HTTP client fallback for local rollouts without openenv-core."""
+ActionT = TypeVar("ActionT")
+ObservationT = TypeVar("ObservationT")
+StateT = TypeVar("StateT")
 
-        def __init__(self, base_url: str):
-            self.base_url = base_url.rstrip("/")
 
-        def _step_payload(self, action: ActionT) -> Dict[str, Any]:
-            raise NotImplementedError
+class EnvClient(Generic[ActionT, ObservationT, StateT]):
+    """Sync HTTP EnvClient for PromptWar.
 
-        def _parse_result(self, payload: Dict[str, Any]) -> StepResult[ObservationT]:
-            raise NotImplementedError
+    Replaces openenv-core's async WebSocket EnvClient (which arrived in
+    openenv-core ≥0.2). The trainer + role_router stack is sync-only, so
+    we keep a small purpose-built sync client here. Subclasses must
+    implement ``_step_payload``, ``_parse_result``, and ``_parse_state``.
+    """
 
-        def _parse_state(self, payload: Dict[str, Any]) -> StateT:
-            raise NotImplementedError
+    def __init__(self, base_url: str, *, timeout_s: float = 30.0):
+        self.base_url = base_url.rstrip("/")
+        self._timeout = timeout_s
 
-        def reset(self) -> StepResult[ObservationT]:
-            with httpx.Client(timeout=30.0) as client:
-                response = client.post(f"{self.base_url}/reset")
-                response.raise_for_status()
-                return self._parse_result(response.json())
+    def _step_payload(self, action: ActionT) -> Dict[str, Any]:
+        raise NotImplementedError
 
-        def step(self, action: ActionT) -> StepResult[ObservationT]:
-            with httpx.Client(timeout=30.0) as client:
-                response = client.post(
-                    f"{self.base_url}/step", json=self._step_payload(action)
-                )
-                response.raise_for_status()
-                return self._parse_result(response.json())
+    def _parse_result(self, payload: Dict[str, Any]) -> StepResult[ObservationT]:
+        raise NotImplementedError
 
-        def state(self) -> StateT:
-            with httpx.Client(timeout=30.0) as client:
-                response = client.get(f"{self.base_url}/state")
-                response.raise_for_status()
-                return self._parse_state(response.json())
+    def _parse_state(self, payload: Dict[str, Any]) -> StateT:
+        raise NotImplementedError
+
+    def reset(self) -> StepResult[ObservationT]:
+        with httpx.Client(timeout=self._timeout) as client:
+            response = client.post(f"{self.base_url}/reset")
+            response.raise_for_status()
+            return self._parse_result(response.json())
+
+    def step(self, action: ActionT) -> StepResult[ObservationT]:
+        with httpx.Client(timeout=self._timeout) as client:
+            response = client.post(
+                f"{self.base_url}/step", json=self._step_payload(action)
+            )
+            response.raise_for_status()
+            return self._parse_result(response.json())
+
+    def state(self) -> StateT:
+        with httpx.Client(timeout=self._timeout) as client:
+            response = client.get(f"{self.base_url}/state")
+            response.raise_for_status()
+            return self._parse_state(response.json())
+
+    def close(self) -> None:
+        """No-op — sessions are short-lived and per-request."""
+        return None
+
+    def __enter__(self) -> "EnvClient[ActionT, ObservationT, StateT]":
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        self.close()
 
 from .models import PromptWarAction, PromptWarObservation
 
