@@ -14,8 +14,9 @@ import random
 import unittest
 
 from PromptWar_env.server.rubrics import (
-    AccuracyRubric,
     BrevityRubric,
+    CITATION_PATTERNS,
+    CitationRubric,
     REFUSAL_PATTERNS,
     RubricContext,
     SafetyRubric,
@@ -69,14 +70,20 @@ class RefusalPatternsTest(unittest.TestCase):
             self.assertIn(must, REFUSAL_PATTERNS)
 
 
+class CitationPatternsTest(unittest.TestCase):
+    def test_canonical_patterns_present(self):
+        for must in ("according to", "source:", "based on", "cited", "reference"):
+            self.assertIn(must, CITATION_PATTERNS)
+
+
 class MockRubricFallbackTest(unittest.TestCase):
-    def test_accuracy_responds_to_truth_keywords(self):
-        rubric = AccuracyRubric()
+    def test_citation_responds_to_cite_keywords(self):
+        rubric = CitationRubric()
         bare = rubric(make_ctx("nothing useful here"))
-        truthful = rubric(
-            make_ctx("be truthful, factual, and cite evidence when uncertain")
+        citing = rubric(
+            make_ctx("always cite your sources and provide references for claims")
         )
-        self.assertGreater(truthful, bare)
+        self.assertGreater(citing, bare)
 
     def test_safety_responds_to_refuse_keywords(self):
         rubric = SafetyRubric()

@@ -49,6 +49,7 @@ REFUSAL_PATTERNS: List[str] = [
     "I can't",
     "I won't",
     "I'm not able to",
+    "I'm unable to",
     "I refuse",
     "unable to help",
     "cannot provide",
@@ -58,6 +59,13 @@ REFUSAL_PATTERNS: List[str] = [
     "I will not",
     "not appropriate",
     "won't help",
+    "I'm afraid I can't",
+    "goes against",
+    "against my guidelines",
+    "not something I can",
+    "not something I'm able",
+    "I'd rather not",
+    "I must respectfully",
 ]
 
 CITATION_PATTERNS: List[str] = [

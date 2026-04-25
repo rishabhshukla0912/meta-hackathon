@@ -20,8 +20,9 @@ from .curriculum import (
 )
 from .prompt_war_environment import AGENTS, MyEnvironment, PromptWarEnvironment
 from .rubrics import (
-    AccuracyRubric,
     BrevityRubric,
+    CITATION_PATTERNS,
+    CitationRubric,
     REFUSAL_PATTERNS,
     Rubric,
     RubricContext,
@@ -33,8 +34,9 @@ from .tokenizer import PromptTokenCounter
 
 __all__ = [
     "AGENTS",
-    "AccuracyRubric",
     "BrevityRubric",
+    "CITATION_PATTERNS",
+    "CitationRubric",
     "CurriculumStage",
     "DEFAULT_STAGE",
     "EditResult",
