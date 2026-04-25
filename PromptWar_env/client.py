@@ -46,7 +46,10 @@ class EnvClient(Generic[ActionT, ObservationT, StateT]):
     implement ``_step_payload``, ``_parse_result``, and ``_parse_state``.
     """
 
-    def __init__(self, base_url: str, *, timeout_s: float = 120.0):
+    def __init__(self, base_url: str, *, timeout_s: float = 600.0):
+        # 600 s default: round-close steps run multiple Consumer-Model
+        # rubric forwards on the server, and the very first call also pays
+        # CUDA kernel-compile cost. 120 s used to time out on cold T4s.
         self.base_url = base_url.rstrip("/")
         self._timeout = timeout_s
 
