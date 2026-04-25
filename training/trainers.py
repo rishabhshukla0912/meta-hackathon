@@ -124,6 +124,12 @@ def build_three_trainers(
         logger.info("GRPOConfig: dropping kwargs not supported by installed trl: %s", dropped)
     grpo_config = GRPOConfig(**grpo_kwargs)
 
+    # TRL ≥0.13 requires a train_dataset at construction time even when we
+    # feed prompts/completions directly via training_step_with_rollouts. A
+    # one-row placeholder satisfies the constructor; the real prompts come
+    # from the env at every step.
+    placeholder_dataset = _placeholder_grpo_dataset()
+
     trainers: Dict[str, RoleGRPOTrainer] = {}
     for role in ROLES:
         # ``reward_funcs`` is a TRL hook; we'll override scores per-batch via
@@ -133,9 +139,16 @@ def build_three_trainers(
             processing_class=tokenizer,
             args=grpo_config,
             reward_funcs=[lambda *args, **kwargs: 0.0],
+            train_dataset=placeholder_dataset,
         )
         trainers[role] = RoleGRPOTrainer(role=role, trainer=trainer)
     return trainers
+
+
+def _placeholder_grpo_dataset() -> Any:
+    """One-row HF dataset whose only role is to satisfy GRPOTrainer's constructor."""
+    from datasets import Dataset  # type: ignore
+    return Dataset.from_dict({"prompt": ["placeholder — overridden by rollouts"]})
 
 
 def flush_episode(
@@ -168,19 +181,28 @@ def _generic_grpo_step(
     """
     import torch  # type: ignore
 
-    inputs = trainer.processing_class(
-        prompts, return_tensors="pt", padding=True, truncation=True
-    )
-    completion_ids = trainer.processing_class(
-        completions, return_tensors="pt", padding=True, truncation=True
-    )["input_ids"]
+    tokenizer = trainer.processing_class
+    full_texts = [f"{prompt}{completion}" for prompt, completion in zip(prompts, completions)]
+    inputs = tokenizer(full_texts, return_tensors="pt", padding=True, truncation=True)
+    prompt_inputs = tokenizer(prompts, return_tensors="pt", padding=True, truncation=True)
+
+    device = next(trainer.model.parameters()).device
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+    prompt_attention_mask = prompt_inputs["attention_mask"].to(device)
+
+    labels = inputs["input_ids"].clone()
+    labels[inputs["attention_mask"] == 0] = -100
+    for row_idx, prompt_len in enumerate(prompt_attention_mask.sum(dim=1).tolist()):
+        labels[row_idx, :prompt_len] = -100
 
     with torch.enable_grad():
-        outputs = trainer.model(**inputs, labels=completion_ids)
+        outputs = trainer.model(**inputs, labels=labels)
         # Scale CE by reward as a crude REINFORCE proxy. NOT real GRPO —
         # only a fallback used when TRL doesn't expose the rollout API.
         scaled = outputs.loss * float(sum(rewards) / max(len(rewards), 1))
         scaled.backward()
+        if trainer.optimizer is None:
+            trainer.create_optimizer()
         trainer.optimizer.step()
         trainer.optimizer.zero_grad()
 

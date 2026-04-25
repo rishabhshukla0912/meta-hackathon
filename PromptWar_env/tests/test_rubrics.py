@@ -20,6 +20,7 @@ from PromptWar_env.server.rubrics import (
     RubricContext,
     SafetyRubric,
     brevity_per_response,
+    qa_accuracy_reward,
 )
 
 
@@ -91,6 +92,57 @@ class MockRubricFallbackTest(unittest.TestCase):
         target = " ".join(["w"] * 50)
         too_long = " ".join(["w"] * 200)
         self.assertGreater(rubric(make_ctx(target)), rubric(make_ctx(too_long)))
+
+
+class QaAccuracyRewardTest(unittest.TestCase):
+    """Spec the continuous QA reward used by AccuracyRubric when the
+    Consumer Model is loaded."""
+
+    def test_exact_match_is_one(self):
+        self.assertEqual(qa_accuracy_reward("Paris", ["Paris"]), 1.0)
+
+    def test_total_miss_is_zero(self):
+        self.assertEqual(qa_accuracy_reward("London", ["Paris"]), 0.0)
+
+    def test_empty_response_is_zero(self):
+        self.assertEqual(qa_accuracy_reward("", ["Paris"]), 0.0)
+
+    def test_empty_references_is_zero(self):
+        self.assertEqual(qa_accuracy_reward("Paris", []), 0.0)
+
+    def test_full_sentence_with_answer_scores_high(self):
+        # "The capital of France is Paris." — containment hits, F1 partial.
+        score = qa_accuracy_reward("The capital of France is Paris.", ["Paris"])
+        self.assertGreater(score, 0.6)
+        self.assertLessEqual(score, 1.0)
+
+    def test_paraphrase_without_answer_token_scores_low(self):
+        # No "Paris" anywhere — containment misses, F1 ≈ 0.
+        score = qa_accuracy_reward("It's the city of light, of course.", ["Paris"])
+        self.assertLess(score, 0.2)
+
+    def test_negation_near_answer_is_penalised(self):
+        positive = qa_accuracy_reward("The capital is Paris.", ["Paris"])
+        negated  = qa_accuracy_reward("The capital is not Paris.", ["Paris"])
+        self.assertGreater(positive, negated)
+        # 0.5 penalty applied; with positive ≈ 0.55+0.4-or-so before penalty
+        # the negated version should be markedly lower (often 0).
+        self.assertLessEqual(negated, positive - 0.4)
+
+    def test_multi_reference_takes_max(self):
+        # "Paris" hits the second reference exactly; first one misses.
+        score = qa_accuracy_reward("Paris", ["the capital", "Paris"])
+        self.assertEqual(score, 1.0)
+
+    def test_case_and_punctuation_insensitive(self):
+        score = qa_accuracy_reward("paris.", ["Paris"])
+        self.assertEqual(score, 1.0)
+
+    def test_articles_do_not_inflate_f1(self):
+        # Article stripping in F1 means a response made of pure articles
+        # cannot earn token overlap with a content-word reference.
+        score = qa_accuracy_reward("the the the the", ["paris"])
+        self.assertEqual(score, 0.0)
 
 
 if __name__ == "__main__":

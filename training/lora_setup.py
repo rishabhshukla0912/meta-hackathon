@@ -75,23 +75,45 @@ def build_base_model(
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model_kwargs: Dict[str, Any] = {"torch_dtype": "auto", "device_map": device_map}
-    if load_in_4bit:
-        model_kwargs["load_in_4bit"] = True
-
+    model_kwargs = _base_model_kwargs(load_in_4bit=load_in_4bit, device_map=device_map)
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
     return {"model": model, "tokenizer": tokenizer, "device_map": device_map}
+
+
+def _base_model_kwargs(*, load_in_4bit: bool, device_map: str) -> Dict[str, Any]:
+    """Build kwargs for ``AutoModelForCausalLM.from_pretrained``."""
+    model_kwargs: Dict[str, Any] = {"torch_dtype": "auto", "device_map": device_map}
+    if not load_in_4bit:
+        return model_kwargs
+
+    # Pass 4-bit loading through quantization_config so it is consumed by
+    # transformers instead of leaking into Qwen2ForCausalLM.__init__.
+    try:
+        import torch  # type: ignore
+        from transformers import BitsAndBytesConfig  # type: ignore
+    except ImportError as exc:  # pragma: no cover - GPU-only path
+        raise RuntimeError(
+            "load_in_4bit=True requires transformers + bitsandbytes installed"
+        ) from exc
+
+    model_kwargs["quantization_config"] = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+    )
+    return model_kwargs
 
 
 def attach_lora_adapters(
     model: Any,
     spec: LoRAConfigSpec | None = None,
 ) -> Any:
-    """Attach three named LoRA adapters to ``model`` in place.
+    """Attach a TRL-compatible default adapter plus one adapter per role.
 
-    Returns the resulting ``PeftModel``. The first adapter is added with
-    :func:`peft.get_peft_model`; the remaining two via ``add_adapter`` so
-    they share the base weights.
+    Returns the resulting ``PeftModel``. TRL's ``GRPOTrainer`` expects a
+    ``"default"`` PEFT config so it can create its reference adapter; the
+    training loop still activates only the role adapters.
     """
     from peft import LoraConfig, get_peft_model  # type: ignore
 
@@ -109,8 +131,8 @@ def attach_lora_adapters(
     if not roles:
         raise ValueError("LoRAConfigSpec.roles must be non-empty")
 
-    peft_model = get_peft_model(model, lora_config, adapter_name=roles[0])
-    for role in roles[1:]:
+    peft_model = get_peft_model(model, lora_config)
+    for role in roles:
         peft_model.add_adapter(adapter_name=role, peft_config=lora_config)
     peft_model.set_adapter(roles[0])
     return peft_model

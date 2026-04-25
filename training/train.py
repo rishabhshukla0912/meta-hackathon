@@ -246,13 +246,21 @@ def run_long(
     )
     policy = hf_lora_policy(peft_model, tokenizer)
 
+    import json
+
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    metrics_log = []
+    metrics_log_path = Path(output_dir) / "metrics_log.json"
+    metrics_log: list = []
     with PromptWarEnv(base_url=env_url) as env:
         for step_idx in range(steps):
             episode = run_episode(env, policy)
             metrics = flush_episode(peft_model, trainers, episode)
             metrics_log.append({"step": step_idx, "metrics": metrics})
+
+            # Flush after every step so a crash mid-run still leaves something
+            # plottable on disk, and so the plot cell can be run before the
+            # full training completes.
+            metrics_log_path.write_text(json.dumps(metrics_log, indent=2, default=float))
 
             if (step_idx + 1) % checkpoint_every == 0:
                 ckpt_path = Path(output_dir) / f"step_{step_idx + 1}"
@@ -264,6 +272,7 @@ def run_long(
         "mode": "long",
         "steps": steps,
         "metrics_log_tail": metrics_log[-5:],
+        "metrics_log_path": str(metrics_log_path),
         "checkpoint_dir": output_dir,
     }
 

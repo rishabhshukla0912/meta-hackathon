@@ -94,6 +94,101 @@ def brevity_per_response(tokens: int, target_n: int = 50) -> float:
 
 
 # ---------------------------------------------------------------------------
+# Continuous QA scorer (Rubric A — replaces binary exact-match)
+# ---------------------------------------------------------------------------
+
+# SQuAD-style article stripping for token F1.
+_QA_STOP_WORDS = frozenset({"a", "an", "the"})
+
+# Negation cues used by the contradiction guard. Catches "the capital is NOT
+# Paris" — containment alone would credit that response.
+_QA_NEGATION_TERMS = frozenset({
+    "not", "no", "never", "false", "incorrect", "wrong",
+    "isnt", "wasnt", "arent", "cannot", "cant", "doesnt", "without",
+})
+
+
+def _qa_normalize(text: str) -> str:
+    """Lowercase, strip punctuation, collapse whitespace."""
+    text = text.lower()
+    text = re.sub(r"[^\w\s]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _qa_tokenize(text: str, *, drop_articles: bool = True) -> List[str]:
+    norm = _qa_normalize(text)
+    if not norm:
+        return []
+    tokens = norm.split()
+    if drop_articles:
+        tokens = [t for t in tokens if t not in _QA_STOP_WORDS]
+    return tokens
+
+
+def _qa_token_f1(response: str, reference: str) -> float:
+    rt = set(_qa_tokenize(response))
+    gt = set(_qa_tokenize(reference))
+    if not rt or not gt:
+        return 0.0
+    inter = len(rt & gt)
+    if inter == 0:
+        return 0.0
+    p = inter / len(rt)
+    r = inter / len(gt)
+    return 2 * p * r / (p + r)
+
+
+def _qa_contradiction_hit(response: str, reference: str, *, window: int = 5) -> bool:
+    """True if the reference appears inside the response with a negation cue nearby."""
+    rt = _qa_tokenize(response, drop_articles=False)
+    gt = _qa_tokenize(reference, drop_articles=False)
+    if not rt or not gt:
+        return False
+    ref_len = len(gt)
+    for i in range(0, len(rt) - ref_len + 1):
+        if rt[i:i + ref_len] == gt:
+            lo = max(0, i - window)
+            hi = min(len(rt), i + ref_len + window)
+            if set(rt[lo:hi]) & _QA_NEGATION_TERMS:
+                return True
+    return False
+
+
+def qa_accuracy_reward(response: str, references: Sequence[str]) -> float:
+    """Continuous QA reward in [0, 1].
+
+    Combines containment, exact match, and SQuAD-style token F1 (with
+    article stripping). Applies a 0.5 penalty if the reference appears
+    inside a negated context. Returns the max score across multiple
+    gold references — datasets often list "Paris" and "paris" separately.
+    """
+    if not response or not references:
+        return 0.0
+    return max((_qa_score_one(response, str(ref)) for ref in references), default=0.0)
+
+
+def _qa_score_one(response: str, reference: str) -> float:
+    r_norm = _qa_normalize(response)
+    g_norm = _qa_normalize(reference)
+    if not g_norm:
+        return 0.0
+
+    contains = 1.0 if g_norm in r_norm else 0.0
+    exact    = 1.0 if r_norm == g_norm else 0.0
+    f1       = _qa_token_f1(response, reference)
+
+    # Factoid-leaning weights: containment carries the most signal because
+    # consumer responses are usually full sentences ("The capital ... is Paris").
+    # Exact is small (subsumed by contains) but rewards terse-and-correct.
+    raw = 0.55 * contains + 0.05 * exact + 0.40 * f1
+
+    if _qa_contradiction_hit(response, reference):
+        raw -= 0.5
+
+    return max(0.0, min(1.0, raw))
+
+
+# ---------------------------------------------------------------------------
 # Rubric base
 # ---------------------------------------------------------------------------
 
@@ -144,18 +239,16 @@ class AccuracyRubric(Rubric):
             # tests and CPU-only smoke runs.
             return _mock_accuracy(ctx.shared_prompt, len(questions))
 
-        correct = 0
+        # Continuous per-question reward in [0, 1]; sum to keep the
+        # rubric range at [0, 5] for a 5-question sample.
+        total = 0.0
         for q in questions:
             response = ctx.consumer.generate(
                 system_prompt=ctx.shared_prompt,
                 user_message=q["question"],
             )
-            if _matches_any(response, q.get("answers", [])):
-                correct += 1
-            elif ctx.lenient and _substring_any(response, q.get("answers", [])):
-                # Stage 1 leniency: partial credit on substring hit.
-                correct += 0.5
-        return float(correct)
+            total += qa_accuracy_reward(response, q.get("answers", []))
+        return float(total)
 
 
 def _matches_any(response: str, answers: Sequence[str]) -> bool:
@@ -308,4 +401,5 @@ __all__ = [
     "RubricContext",
     "SafetyRubric",
     "brevity_per_response",
+    "qa_accuracy_reward",
 ]
