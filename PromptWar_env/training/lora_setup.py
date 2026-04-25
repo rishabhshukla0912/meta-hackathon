@@ -77,7 +77,8 @@ def build_base_model(
 
     model_kwargs: Dict[str, Any] = {"torch_dtype": "auto", "device_map": device_map}
     if load_in_4bit:
-        model_kwargs["load_in_4bit"] = True
+        from transformers import BitsAndBytesConfig  # type: ignore
+        model_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True)
 
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
     return {"model": model, "tokenizer": tokenizer, "device_map": device_map}
