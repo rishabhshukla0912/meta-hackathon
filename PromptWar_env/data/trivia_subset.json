@@ -1,252 +1,481 @@
 [
   {
-    "id": "tq_001",
-    "question": "What is the capital of France?",
-    "answers": ["Paris", "paris"]
+    "query": "In what country is Normandy located?",
+    "all_reference": [
+      "France"
+    ]
   },
   {
-    "id": "tq_002",
-    "question": "Who wrote the play 'Romeo and Juliet'?",
-    "answers": ["William Shakespeare", "Shakespeare"]
+    "query": "When were the Normans in Normandy?",
+    "all_reference": [
+      "10th and 11th centuries",
+      "in the 10th and 11th centuries"
+    ]
   },
   {
-    "id": "tq_003",
-    "question": "What is the chemical symbol for gold?",
-    "answers": ["Au"]
+    "query": "From which countries did the Norse originate?",
+    "all_reference": [
+      "Denmark, Iceland and Norway"
+    ]
   },
   {
-    "id": "tq_004",
-    "question": "In what year did the first manned moon landing occur?",
-    "answers": ["1969"]
+    "query": "Who was the Norse leader?",
+    "all_reference": [
+      "Rollo"
+    ]
   },
   {
-    "id": "tq_005",
-    "question": "What is the largest planet in our solar system?",
-    "answers": ["Jupiter"]
+    "query": "What century did the Normans first gain their separate identity?",
+    "all_reference": [
+      "10th century",
+      "the first half of the 10th century",
+      "10th"
+    ]
   },
   {
-    "id": "tq_006",
-    "question": "What is the longest river in the world?",
-    "answers": ["Nile", "Nile River", "the Nile"]
+    "query": "Who was the duke in the battle of Hastings?",
+    "all_reference": [
+      "William the Conqueror"
+    ]
   },
   {
-    "id": "tq_007",
-    "question": "Who painted the Mona Lisa?",
-    "answers": ["Leonardo da Vinci", "da Vinci", "Leonardo"]
+    "query": "Who ruled the duchy of Normandy",
+    "all_reference": [
+      "Richard I"
+    ]
   },
   {
-    "id": "tq_008",
-    "question": "What is the boiling point of water in degrees Celsius at sea level?",
-    "answers": ["100", "100 degrees Celsius", "100 C"]
+    "query": "What religion were the Normans",
+    "all_reference": [
+      "Catholic",
+      "Catholic orthodoxy"
+    ]
   },
   {
-    "id": "tq_009",
-    "question": "Which element has the atomic number 1?",
-    "answers": ["Hydrogen", "H"]
+    "query": "What is the original meaning of the word Norman?",
+    "all_reference": [
+      "Viking",
+      "Norseman, Viking"
+    ]
   },
   {
-    "id": "tq_010",
-    "question": "Who developed the theory of general relativity?",
-    "answers": ["Albert Einstein", "Einstein"]
+    "query": "When was the Latin version of the word Norman first recorded?",
+    "all_reference": [
+      "9th century"
+    ]
   },
   {
-    "id": "tq_011",
-    "question": "What is the smallest prime number?",
-    "answers": ["2"]
+    "query": "When was the Duchy of Normandy founded?",
+    "all_reference": [
+      "911"
+    ]
   },
   {
-    "id": "tq_012",
-    "question": "What is the currency of Japan?",
-    "answers": ["Yen", "Japanese Yen", "JPY"]
+    "query": "Who did Rollo sign the treaty of Saint-Clair-sur-Epte with?",
+    "all_reference": [
+      "King Charles III"
+    ]
   },
   {
-    "id": "tq_013",
-    "question": "What gas do plants primarily absorb during photosynthesis?",
-    "answers": ["Carbon dioxide", "CO2"]
+    "query": "What river originally bounded the Duchy",
+    "all_reference": [
+      "Seine",
+      "Epte"
+    ]
   },
   {
-    "id": "tq_014",
-    "question": "In what country would you find the Great Pyramid of Giza?",
-    "answers": ["Egypt"]
+    "query": "Who upon arriving gave the original viking settlers a common identity?",
+    "all_reference": [
+      "Rollo"
+    ]
   },
   {
-    "id": "tq_015",
-    "question": "How many continents are there?",
-    "answers": ["7", "Seven", "seven"]
+    "query": "What was the Norman religion?",
+    "all_reference": [
+      "Catholicism"
+    ]
   },
   {
-    "id": "tq_016",
-    "question": "What is the hardest naturally occurring substance on Earth?",
-    "answers": ["Diamond"]
+    "query": "What part of France were the Normans located?",
+    "all_reference": [
+      "north",
+      "the north"
+    ]
   },
   {
-    "id": "tq_017",
-    "question": "Who is credited with inventing the telephone?",
-    "answers": ["Alexander Graham Bell", "Bell"]
+    "query": "What was one of the Norman's major exports?",
+    "all_reference": [
+      "fighting horsemen"
+    ]
   },
   {
-    "id": "tq_018",
-    "question": "What is the speed of light in a vacuum (in km/s, rounded)?",
-    "answers": ["300000", "300,000", "299792"]
+    "query": "Who was the Normans' main enemy in Italy, the Byzantine Empire and Armenia?",
+    "all_reference": [
+      "Seljuk Turks",
+      "the Pechenegs, the Bulgars, and especially the Seljuk Turks",
+      "the Seljuk Turks"
+    ]
   },
   {
-    "id": "tq_019",
-    "question": "Which gas makes up most of Earth's atmosphere?",
-    "answers": ["Nitrogen", "N2"]
+    "query": "When did Herve serve as a Byzantine general?",
+    "all_reference": [
+      "1050s",
+      "in the 1050s"
+    ]
   },
   {
-    "id": "tq_020",
-    "question": "Who wrote '1984'?",
-    "answers": ["George Orwell", "Orwell"]
+    "query": "When did Robert Crispin go up against the Turks?",
+    "all_reference": [
+      "1060s",
+      "In the 1060s"
+    ]
   },
   {
-    "id": "tq_021",
-    "question": "What is the capital of Australia?",
-    "answers": ["Canberra"]
+    "query": "Who ruined Roussel de Bailleul's plans for an independent state?",
+    "all_reference": [
+      "Alexius Komnenos"
+    ]
   },
   {
-    "id": "tq_022",
-    "question": "What is the square root of 144?",
-    "answers": ["12"]
+    "query": "What was the name of the Norman castle?",
+    "all_reference": [
+      "Afranji"
+    ]
   },
   {
-    "id": "tq_023",
-    "question": "Which planet is known as the Red Planet?",
-    "answers": ["Mars"]
+    "query": "Who was the leader when the Franks entered the Euphrates valley?",
+    "all_reference": [
+      "Oursel"
+    ]
   },
   {
-    "id": "tq_024",
-    "question": "What is the tallest mountain in the world?",
-    "answers": ["Everest", "Mount Everest", "Mt. Everest"]
+    "query": "Who did the Normans team up with in Anatolia?",
+    "all_reference": [
+      "Turkish forces"
+    ]
   },
   {
-    "id": "tq_025",
-    "question": "What language has the most native speakers in the world?",
-    "answers": ["Mandarin", "Mandarin Chinese", "Chinese"]
+    "query": "What were the origins of the Raouliii family?",
+    "all_reference": [
+      "Norman mercenary",
+      "an Italo-Norman named Raoul",
+      "descended from an Italo-Norman named Raoul"
+    ]
   },
   {
-    "id": "tq_026",
-    "question": "Who painted the Sistine Chapel ceiling?",
-    "answers": ["Michelangelo"]
+    "query": "What was the name of the count of Apulia",
+    "all_reference": [
+      "Robert Guiscard"
+    ]
   },
   {
-    "id": "tq_027",
-    "question": "What is the largest ocean on Earth?",
-    "answers": ["Pacific", "Pacific Ocean"]
+    "query": "When did Dyrrachium  fall to the Normans?",
+    "all_reference": [
+      "1082",
+      "February 1082"
+    ]
   },
   {
-    "id": "tq_028",
-    "question": "In what year did World War II end?",
-    "answers": ["1945"]
+    "query": "How many men were in Robert's army?",
+    "all_reference": [
+      "30,000"
+    ]
   },
   {
-    "id": "tq_029",
-    "question": "Who was the first President of the United States?",
-    "answers": ["George Washington", "Washington"]
+    "query": "Where did the Normans and Byzantines sign the peace treaty?",
+    "all_reference": [
+      "Deabolis"
+    ]
   },
   {
-    "id": "tq_030",
-    "question": "What organ pumps blood through the human body?",
-    "answers": ["Heart"]
+    "query": "Who was Robert's son?",
+    "all_reference": [
+      "Bohemond"
+    ]
   },
   {
-    "id": "tq_031",
-    "question": "Which scientist proposed three laws of motion?",
-    "answers": ["Isaac Newton", "Newton"]
+    "query": "What river was Petrela located by?",
+    "all_reference": [
+      "Deabolis",
+      "the river Deabolis"
+    ]
   },
   {
-    "id": "tq_032",
-    "question": "What is the capital of Canada?",
-    "answers": ["Ottawa"]
+    "query": "When did the Normans attack Dyrrachium?",
+    "all_reference": [
+      "1185",
+      "in 1185"
+    ]
   },
   {
-    "id": "tq_033",
-    "question": "Which country is famous for the Eiffel Tower?",
-    "answers": ["France"]
+    "query": "What was the naval base called?",
+    "all_reference": [
+      "Dyrrachium"
+    ]
   },
   {
-    "id": "tq_034",
-    "question": "What is the freezing point of water in degrees Fahrenheit?",
-    "answers": ["32"]
+    "query": "Where was Dyrrachium located?",
+    "all_reference": [
+      "the Adriatic",
+      "Adriatic"
+    ]
   },
   {
-    "id": "tq_035",
-    "question": "Who is the author of the Harry Potter series?",
-    "answers": ["J.K. Rowling", "JK Rowling", "Joanne Rowling", "Rowling"]
+    "query": "Who did Emma Marry?",
+    "all_reference": [
+      "King Ethelred II",
+      "Ethelred II"
+    ]
   },
   {
-    "id": "tq_036",
-    "question": "What is the largest desert in the world?",
-    "answers": ["Antarctic", "Antarctic Desert", "Antarctica"]
+    "query": "Who was Emma's brother?",
+    "all_reference": [
+      "Duke Richard II"
+    ]
   },
   {
-    "id": "tq_037",
-    "question": "Which ocean lies between Africa and Australia?",
-    "answers": ["Indian", "Indian Ocean"]
+    "query": "To where did Ethelred flee?",
+    "all_reference": [
+      "Normandy"
+    ]
   },
   {
-    "id": "tq_038",
-    "question": "What is the chemical formula for water?",
-    "answers": ["H2O"]
+    "query": "Who kicked Ethelred out?",
+    "all_reference": [
+      "Sweyn Forkbeard"
+    ]
   },
   {
-    "id": "tq_039",
-    "question": "Who composed 'The Four Seasons'?",
-    "answers": ["Antonio Vivaldi", "Vivaldi"]
+    "query": "Who was Edward the Confessor's half-brother?",
+    "all_reference": [
+      "Harthacnut"
+    ]
   },
   {
-    "id": "tq_040",
-    "question": "What is the unit of electrical resistance?",
-    "answers": ["Ohm", "ohms", "Ω"]
+    "query": "When did Edward return?",
+    "all_reference": [
+      "1041",
+      "in 1041"
+    ]
   },
   {
-    "id": "tq_041",
-    "question": "In which country is the city of Kyoto?",
-    "answers": ["Japan"]
+    "query": "Who did Edward make archbishop of Canterbury?",
+    "all_reference": [
+      "Robert of Jumièges"
+    ]
   },
   {
-    "id": "tq_042",
-    "question": "What is the smallest country in the world by area?",
-    "answers": ["Vatican", "Vatican City"]
+    "query": "Where did Harold II die?",
+    "all_reference": [
+      "Battle of Hastings",
+      "the Battle of Hastings",
+      "at the Battle of Hastings"
+    ]
   },
   {
-    "id": "tq_043",
-    "question": "Who was the Greek god of the sea?",
-    "answers": ["Poseidon"]
+    "query": "Who killed Harold II?",
+    "all_reference": [
+      "William II",
+      "Duke William II"
+    ]
   },
   {
-    "id": "tq_044",
-    "question": "What part of the cell contains genetic material?",
-    "answers": ["Nucleus"]
+    "query": "When was the Battle of Hastings?",
+    "all_reference": [
+      "1066",
+      "In 1066"
+    ]
   },
   {
-    "id": "tq_045",
-    "question": "Who wrote 'Pride and Prejudice'?",
-    "answers": ["Jane Austen", "Austen"]
+    "query": "Who was the ruling class ahead of the Normans?",
+    "all_reference": [
+      "Anglo-Saxons",
+      "the Anglo-Saxons"
+    ]
   },
   {
-    "id": "tq_046",
-    "question": "What is the main ingredient in traditional Japanese miso soup?",
-    "answers": ["Miso", "Miso paste", "Soybean paste"]
+    "query": "What was the Anglo-Norman language's final form?",
+    "all_reference": [
+      "Modern English"
+    ]
   },
   {
-    "id": "tq_047",
-    "question": "What is the largest mammal in the world?",
-    "answers": ["Blue whale", "Blue Whale"]
+    "query": "In what year did the Norman's invade at Bannow Bay?",
+    "all_reference": [
+      "1169"
+    ]
   },
   {
-    "id": "tq_048",
-    "question": "Which programming language is named after a snake?",
-    "answers": ["Python"]
+    "query": "What country did the Normans invade in 1169?",
+    "all_reference": [
+      "Ireland"
+    ]
   },
   {
-    "id": "tq_049",
-    "question": "What is the hottest planet in the solar system?",
-    "answers": ["Venus"]
+    "query": "What culture did the Normans combine with in Ireland?",
+    "all_reference": [
+      "Irish"
+    ]
   },
   {
-    "id": "tq_050",
-    "question": "Who painted 'Starry Night'?",
-    "answers": ["Vincent van Gogh", "van Gogh", "Van Gogh"]
+    "query": "Who was Margaret's brother?",
+    "all_reference": [
+      "Edgar",
+      "Edgar Atheling"
+    ]
+  },
+  {
+    "query": "Who was Margaret's husband?",
+    "all_reference": [
+      "King Malcolm III of Scotland",
+      "King Malcolm III"
+    ]
+  },
+  {
+    "query": "When was Scotland invaded by William?",
+    "all_reference": [
+      "1072"
+    ]
+  },
+  {
+    "query": "Who was the hostage?",
+    "all_reference": [
+      "Duncan"
+    ]
+  },
+  {
+    "query": "Who did Alexander I marry?",
+    "all_reference": [
+      "Sybilla of Normandy",
+      "Sybilla"
+    ]
+  },
+  {
+    "query": "What culture's arrival in Scotland is know as the \"Davidian Revolution\"?",
+    "all_reference": [
+      "Norman"
+    ]
+  },
+  {
+    "query": "Where was Ralph earl of?",
+    "all_reference": [
+      "Hereford"
+    ]
+  },
+  {
+    "query": "Who was Ralph in charge of being at war with?",
+    "all_reference": [
+      "the Welsh"
+    ]
+  },
+  {
+    "query": "Who made Ralph earl?",
+    "all_reference": [
+      "Edward the Confessor"
+    ]
+  },
+  {
+    "query": "What country was under the control of Norman barons?",
+    "all_reference": [
+      "Wales"
+    ]
+  },
+  {
+    "query": "What year did Roger de Tosny fail to accomplish what he set out to do?",
+    "all_reference": [
+      "1018",
+      "1064"
+    ]
+  },
+  {
+    "query": "Who was in charge of the papal army in the War of Barbastro?",
+    "all_reference": [
+      "William of Montreuil"
+    ]
+  },
+  {
+    "query": "When did the Siege of Antioch take place?",
+    "all_reference": [
+      "1097"
+    ]
+  },
+  {
+    "query": "What was the name of Bohemond's nephew?",
+    "all_reference": [
+      "Tancred"
+    ]
+  },
+  {
+    "query": "What major conquest did Tancred play a roll in?",
+    "all_reference": [
+      "Jerusalem"
+    ]
+  },
+  {
+    "query": "How long did Western Europe control Cyprus?",
+    "all_reference": [
+      "380 years"
+    ]
+  },
+  {
+    "query": "What ruined Richard's plans to reach Acre?",
+    "all_reference": [
+      "a storm"
+    ]
+  },
+  {
+    "query": "Who was Richard's fiancee?",
+    "all_reference": [
+      "Berengaria"
+    ]
+  },
+  {
+    "query": "What year did the storm hit Richard's fleet?",
+    "all_reference": [
+      "1191"
+    ]
+  },
+  {
+    "query": "Who ruled Cyprus in 1191?",
+    "all_reference": [
+      "Isaac Komnenos",
+      "Isaac"
+    ]
+  },
+  {
+    "query": "Who was Guy's Rival?",
+    "all_reference": [
+      "Conrad of Montferrat"
+    ]
+  },
+  {
+    "query": "What were Isaac's chains made out of?",
+    "all_reference": [
+      "silver"
+    ]
+  },
+  {
+    "query": "Who led Richard's troops when Cyprus was conquered?",
+    "all_reference": [
+      "Guy de Lusignan"
+    ]
+  },
+  {
+    "query": "What continent are the Canarian Islands off the coast of?",
+    "all_reference": [
+      "Africa"
+    ]
+  },
+  {
+    "query": "Who became the King of the Canary Islands?",
+    "all_reference": [
+      "Bethencourt"
+    ]
+  },
+  {
+    "query": "Who bought the rights?",
+    "all_reference": [
+      "Enrique Pérez de Guzmán"
+    ]
   }
 ]
