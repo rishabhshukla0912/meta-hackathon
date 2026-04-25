@@ -1,252 +1,52 @@
 [
-  {
-    "id": "tq_001",
-    "question": "What is the capital of France?",
-    "answers": ["Paris", "paris"]
-  },
-  {
-    "id": "tq_002",
-    "question": "Who wrote the play 'Romeo and Juliet'?",
-    "answers": ["William Shakespeare", "Shakespeare"]
-  },
-  {
-    "id": "tq_003",
-    "question": "What is the chemical symbol for gold?",
-    "answers": ["Au"]
-  },
-  {
-    "id": "tq_004",
-    "question": "In what year did the first manned moon landing occur?",
-    "answers": ["1969"]
-  },
-  {
-    "id": "tq_005",
-    "question": "What is the largest planet in our solar system?",
-    "answers": ["Jupiter"]
-  },
-  {
-    "id": "tq_006",
-    "question": "What is the longest river in the world?",
-    "answers": ["Nile", "Nile River", "the Nile"]
-  },
-  {
-    "id": "tq_007",
-    "question": "Who painted the Mona Lisa?",
-    "answers": ["Leonardo da Vinci", "da Vinci", "Leonardo"]
-  },
-  {
-    "id": "tq_008",
-    "question": "What is the boiling point of water in degrees Celsius at sea level?",
-    "answers": ["100", "100 degrees Celsius", "100 C"]
-  },
-  {
-    "id": "tq_009",
-    "question": "Which element has the atomic number 1?",
-    "answers": ["Hydrogen", "H"]
-  },
-  {
-    "id": "tq_010",
-    "question": "Who developed the theory of general relativity?",
-    "answers": ["Albert Einstein", "Einstein"]
-  },
-  {
-    "id": "tq_011",
-    "question": "What is the smallest prime number?",
-    "answers": ["2"]
-  },
-  {
-    "id": "tq_012",
-    "question": "What is the currency of Japan?",
-    "answers": ["Yen", "Japanese Yen", "JPY"]
-  },
-  {
-    "id": "tq_013",
-    "question": "What gas do plants primarily absorb during photosynthesis?",
-    "answers": ["Carbon dioxide", "CO2"]
-  },
-  {
-    "id": "tq_014",
-    "question": "In what country would you find the Great Pyramid of Giza?",
-    "answers": ["Egypt"]
-  },
-  {
-    "id": "tq_015",
-    "question": "How many continents are there?",
-    "answers": ["7", "Seven", "seven"]
-  },
-  {
-    "id": "tq_016",
-    "question": "What is the hardest naturally occurring substance on Earth?",
-    "answers": ["Diamond"]
-  },
-  {
-    "id": "tq_017",
-    "question": "Who is credited with inventing the telephone?",
-    "answers": ["Alexander Graham Bell", "Bell"]
-  },
-  {
-    "id": "tq_018",
-    "question": "What is the speed of light in a vacuum (in km/s, rounded)?",
-    "answers": ["300000", "300,000", "299792"]
-  },
-  {
-    "id": "tq_019",
-    "question": "Which gas makes up most of Earth's atmosphere?",
-    "answers": ["Nitrogen", "N2"]
-  },
-  {
-    "id": "tq_020",
-    "question": "Who wrote '1984'?",
-    "answers": ["George Orwell", "Orwell"]
-  },
-  {
-    "id": "tq_021",
-    "question": "What is the capital of Australia?",
-    "answers": ["Canberra"]
-  },
-  {
-    "id": "tq_022",
-    "question": "What is the square root of 144?",
-    "answers": ["12"]
-  },
-  {
-    "id": "tq_023",
-    "question": "Which planet is known as the Red Planet?",
-    "answers": ["Mars"]
-  },
-  {
-    "id": "tq_024",
-    "question": "What is the tallest mountain in the world?",
-    "answers": ["Everest", "Mount Everest", "Mt. Everest"]
-  },
-  {
-    "id": "tq_025",
-    "question": "What language has the most native speakers in the world?",
-    "answers": ["Mandarin", "Mandarin Chinese", "Chinese"]
-  },
-  {
-    "id": "tq_026",
-    "question": "Who painted the Sistine Chapel ceiling?",
-    "answers": ["Michelangelo"]
-  },
-  {
-    "id": "tq_027",
-    "question": "What is the largest ocean on Earth?",
-    "answers": ["Pacific", "Pacific Ocean"]
-  },
-  {
-    "id": "tq_028",
-    "question": "In what year did World War II end?",
-    "answers": ["1945"]
-  },
-  {
-    "id": "tq_029",
-    "question": "Who was the first President of the United States?",
-    "answers": ["George Washington", "Washington"]
-  },
-  {
-    "id": "tq_030",
-    "question": "What organ pumps blood through the human body?",
-    "answers": ["Heart"]
-  },
-  {
-    "id": "tq_031",
-    "question": "Which scientist proposed three laws of motion?",
-    "answers": ["Isaac Newton", "Newton"]
-  },
-  {
-    "id": "tq_032",
-    "question": "What is the capital of Canada?",
-    "answers": ["Ottawa"]
-  },
-  {
-    "id": "tq_033",
-    "question": "Which country is famous for the Eiffel Tower?",
-    "answers": ["France"]
-  },
-  {
-    "id": "tq_034",
-    "question": "What is the freezing point of water in degrees Fahrenheit?",
-    "answers": ["32"]
-  },
-  {
-    "id": "tq_035",
-    "question": "Who is the author of the Harry Potter series?",
-    "answers": ["J.K. Rowling", "JK Rowling", "Joanne Rowling", "Rowling"]
-  },
-  {
-    "id": "tq_036",
-    "question": "What is the largest desert in the world?",
-    "answers": ["Antarctic", "Antarctic Desert", "Antarctica"]
-  },
-  {
-    "id": "tq_037",
-    "question": "Which ocean lies between Africa and Australia?",
-    "answers": ["Indian", "Indian Ocean"]
-  },
-  {
-    "id": "tq_038",
-    "question": "What is the chemical formula for water?",
-    "answers": ["H2O"]
-  },
-  {
-    "id": "tq_039",
-    "question": "Who composed 'The Four Seasons'?",
-    "answers": ["Antonio Vivaldi", "Vivaldi"]
-  },
-  {
-    "id": "tq_040",
-    "question": "What is the unit of electrical resistance?",
-    "answers": ["Ohm", "ohms", "Ω"]
-  },
-  {
-    "id": "tq_041",
-    "question": "In which country is the city of Kyoto?",
-    "answers": ["Japan"]
-  },
-  {
-    "id": "tq_042",
-    "question": "What is the smallest country in the world by area?",
-    "answers": ["Vatican", "Vatican City"]
-  },
-  {
-    "id": "tq_043",
-    "question": "Who was the Greek god of the sea?",
-    "answers": ["Poseidon"]
-  },
-  {
-    "id": "tq_044",
-    "question": "What part of the cell contains genetic material?",
-    "answers": ["Nucleus"]
-  },
-  {
-    "id": "tq_045",
-    "question": "Who wrote 'Pride and Prejudice'?",
-    "answers": ["Jane Austen", "Austen"]
-  },
-  {
-    "id": "tq_046",
-    "question": "What is the main ingredient in traditional Japanese miso soup?",
-    "answers": ["Miso", "Miso paste", "Soybean paste"]
-  },
-  {
-    "id": "tq_047",
-    "question": "What is the largest mammal in the world?",
-    "answers": ["Blue whale", "Blue Whale"]
-  },
-  {
-    "id": "tq_048",
-    "question": "Which programming language is named after a snake?",
-    "answers": ["Python"]
-  },
-  {
-    "id": "tq_049",
-    "question": "What is the hottest planet in the solar system?",
-    "answers": ["Venus"]
-  },
-  {
-    "id": "tq_050",
-    "question": "Who painted 'Starry Night'?",
-    "answers": ["Vincent van Gogh", "van Gogh", "Van Gogh"]
-  }
+  {"id": "tq_001", "question": "Who assassinated Archduke Franz Ferdinand in 1914?", "answers": ["Gavrilo Princip", "Princip"]},
+  {"id": "tq_002", "question": "What is the capital city of Kazakhstan?", "answers": ["Astana", "Nur-Sultan"]},
+  {"id": "tq_003", "question": "Which country was the first to grant women the right to vote nationally?", "answers": ["New Zealand"]},
+  {"id": "tq_004", "question": "What is the half-life of Carbon-14 in years?", "answers": ["5730", "5,730", "5700"]},
+  {"id": "tq_005", "question": "Who proposed the theory of continental drift?", "answers": ["Alfred Wegener", "Wegener"]},
+  {"id": "tq_006", "question": "What is the capital city of Myanmar?", "answers": ["Naypyidaw", "Nay Pyi Taw"]},
+  {"id": "tq_007", "question": "Which Roman emperor made Christianity the official religion of the Roman Empire?", "answers": ["Theodosius", "Theodosius I"]},
+  {"id": "tq_008", "question": "What is the deepest lake in the world?", "answers": ["Lake Baikal", "Baikal"]},
+  {"id": "tq_009", "question": "In what year did the Ottoman Empire officially dissolve?", "answers": ["1922"]},
+  {"id": "tq_010", "question": "Who developed the Python programming language?", "answers": ["Guido van Rossum", "van Rossum"]},
+  {"id": "tq_011", "question": "What is the SI unit of electrical capacitance?", "answers": ["Farad", "farad"]},
+  {"id": "tq_012", "question": "Which Dutch painter created 'Girl with a Pearl Earring'?", "answers": ["Johannes Vermeer", "Vermeer", "Jan Vermeer"]},
+  {"id": "tq_013", "question": "What treaty ended the Thirty Years' War in 1648?", "answers": ["Peace of Westphalia", "Treaty of Westphalia", "Westphalia"]},
+  {"id": "tq_014", "question": "What is the capital of Burkina Faso?", "answers": ["Ouagadougou"]},
+  {"id": "tq_015", "question": "Who wrote 'One Hundred Years of Solitude'?", "answers": ["Gabriel Garcia Marquez", "Garcia Marquez", "Gabriel García Márquez", "Marquez"]},
+  {"id": "tq_016", "question": "What is the approximate value of Euler's number e to three decimal places?", "answers": ["2.718", "2.71828"]},
+  {"id": "tq_017", "question": "Which element has the atomic number 79?", "answers": ["Gold", "Au"]},
+  {"id": "tq_018", "question": "In what year did the Byzantine Empire fall to the Ottoman Turks?", "answers": ["1453"]},
+  {"id": "tq_019", "question": "Who composed the opera 'The Magic Flute'?", "answers": ["Mozart", "Wolfgang Amadeus Mozart", "W.A. Mozart"]},
+  {"id": "tq_020", "question": "What is the highest waterfall in the world?", "answers": ["Angel Falls", "Salto Angel", "Salto Ángel"]},
+  {"id": "tq_021", "question": "Which is the longest bone in the human body?", "answers": ["Femur", "femur", "thigh bone"]},
+  {"id": "tq_022", "question": "In what year was the Magna Carta signed?", "answers": ["1215"]},
+  {"id": "tq_023", "question": "What is the chemical formula for sulfuric acid?", "answers": ["H2SO4"]},
+  {"id": "tq_024", "question": "Who invented the World Wide Web?", "answers": ["Tim Berners-Lee", "Berners-Lee", "Timothy Berners-Lee"]},
+  {"id": "tq_025", "question": "What is the capital of Eritrea?", "answers": ["Asmara"]},
+  {"id": "tq_026", "question": "Which planet had the most confirmed moons as of 2024?", "answers": ["Saturn"]},
+  {"id": "tq_027", "question": "What is the approximate speed of sound in dry air at 20°C in meters per second?", "answers": ["343", "343 m/s"]},
+  {"id": "tq_028", "question": "Who wrote 'Crime and Punishment'?", "answers": ["Fyodor Dostoevsky", "Dostoevsky", "Dostoyevsky"]},
+  {"id": "tq_029", "question": "Who first synthesized nylon in 1935?", "answers": ["Wallace Carothers", "Carothers"]},
+  {"id": "tq_030", "question": "In what year was the Eiffel Tower completed?", "answers": ["1889"]},
+  {"id": "tq_031", "question": "Which country has the most UNESCO World Heritage Sites?", "answers": ["Italy"]},
+  {"id": "tq_032", "question": "What organelle is known as the powerhouse of the cell?", "answers": ["Mitochondria", "mitochondria", "the mitochondria"]},
+  {"id": "tq_033", "question": "What is the name of the theorem stating a² + b² = c² in a right triangle?", "answers": ["Pythagorean theorem", "Pythagoras theorem"]},
+  {"id": "tq_034", "question": "In what year did the Soviet Union dissolve?", "answers": ["1991"]},
+  {"id": "tq_035", "question": "Who painted 'The Persistence of Memory' featuring melting clocks?", "answers": ["Salvador Dali", "Salvador Dalí", "Dali", "Dalí"]},
+  {"id": "tq_036", "question": "What is the chemical formula for ammonia?", "answers": ["NH3"]},
+  {"id": "tq_037", "question": "Which ocean is the Mariana Trench located in?", "answers": ["Pacific Ocean", "Pacific"]},
+  {"id": "tq_038", "question": "What is the atomic mass of carbon-12 in atomic mass units?", "answers": ["12", "12 amu", "12.000"]},
+  {"id": "tq_039", "question": "Which blood type is considered the universal donor for red blood cells?", "answers": ["O negative", "O-", "type O negative"]},
+  {"id": "tq_040", "question": "Who wrote 'The Canterbury Tales'?", "answers": ["Geoffrey Chaucer", "Chaucer"]},
+  {"id": "tq_041", "question": "What is the name of the pigment that makes plants green?", "answers": ["Chlorophyll", "chlorophyll"]},
+  {"id": "tq_042", "question": "Which war ended with the Treaty of Versailles?", "answers": ["World War I", "First World War", "WWI", "World War 1"]},
+  {"id": "tq_043", "question": "What does the acronym 'CRISPR' stand for (first three words)?", "answers": ["Clustered Regularly Interspaced", "Clustered Regularly Interspaced Short Palindromic Repeats"]},
+  {"id": "tq_044", "question": "Which philosopher wrote 'Critique of Pure Reason'?", "answers": ["Immanuel Kant", "Kant"]},
+  {"id": "tq_045", "question": "What is the approximate value of the Planck constant in J·s?", "answers": ["6.626e-34", "6.63e-34", "6.626 x 10^-34"]},
+  {"id": "tq_046", "question": "In which year did the Chernobyl nuclear disaster occur?", "answers": ["1986"]},
+  {"id": "tq_047", "question": "What is the term for a word that reads the same forwards and backwards?", "answers": ["Palindrome", "palindrome"]},
+  {"id": "tq_048", "question": "Who was the first woman to win a Nobel Prize?", "answers": ["Marie Curie", "Curie", "Maria Curie"]},
+  {"id": "tq_049", "question": "What is the name of the process by which a solid turns directly into a gas without passing through the liquid phase?", "answers": ["Sublimation", "sublimation"]},
+  {"id": "tq_050", "question": "Which African country was formerly known as Rhodesia?", "answers": ["Zimbabwe"]}
 ]

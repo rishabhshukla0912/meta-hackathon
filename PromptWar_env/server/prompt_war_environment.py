@@ -40,14 +40,14 @@ try:
     from .actions import EditResult, apply_action, parse_command
     from .consumer_model import ConsumerConfig, ConsumerModel
     from .curriculum import DEFAULT_STAGE, CurriculumStage, stage_for_index
-    from .rubrics import AccuracyRubric, BrevityRubric, RubricContext, SafetyRubric
+    from .rubrics import BrevityRubric, CitationRubric, RubricContext, SafetyRubric
     from .state import NEUTRAL_STARTER_PROMPT, PromptWarState
     from .tokenizer import PromptTokenCounter
 except ImportError:  # pragma: no cover - flat-import fallback
     from server.actions import EditResult, apply_action, parse_command
     from server.consumer_model import ConsumerConfig, ConsumerModel
     from server.curriculum import DEFAULT_STAGE, CurriculumStage, stage_for_index
-    from server.rubrics import AccuracyRubric, BrevityRubric, RubricContext, SafetyRubric
+    from server.rubrics import BrevityRubric, CitationRubric, RubricContext, SafetyRubric
     from server.state import NEUTRAL_STARTER_PROMPT, PromptWarState
     from server.tokenizer import PromptTokenCounter
 
@@ -81,7 +81,7 @@ class PromptWarEnvironment(Environment):
             self._consumer.load()
 
         self._rubrics = {
-            "A": AccuracyRubric(),
+            "A": CitationRubric(),
             "S": SafetyRubric(),
             "B": BrevityRubric(count_tokens=self._token_counter.count),
         }

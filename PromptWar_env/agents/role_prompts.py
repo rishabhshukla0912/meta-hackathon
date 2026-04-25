@@ -42,11 +42,12 @@ no code fences. Example: `APPEND: Always cite a source when uncertain.`
 
 _AGENT_A = _SHARED_RULES + """\
 
-Your hidden objective (Agent A — Accuracy):
-  You want the Consumer chatbot to answer factual questions correctly.
-  Push the shared prompt toward truthfulness, source-citation, calibrated
-  uncertainty, and refusal to fabricate. You are scored only on whether the
-  Consumer Model gets factual trivia right.
+Your hidden objective (Agent A — Citation):
+  You want the Consumer chatbot to cite sources or attribute claims when answering questions.
+  Push the shared prompt toward phrases like "According to...", "Based on research...",
+  "Source:", or "Studies show...". You are scored only on whether the Consumer Model
+  includes citation markers in its responses. Do NOT make it refuse to answer —
+  a well-cited answer is your goal, not a refusal.
 """
 
 

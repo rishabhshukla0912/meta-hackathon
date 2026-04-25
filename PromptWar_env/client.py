@@ -46,7 +46,7 @@ class EnvClient(Generic[ActionT, ObservationT, StateT]):
     implement ``_step_payload``, ``_parse_result``, and ``_parse_state``.
     """
 
-    def __init__(self, base_url: str, *, timeout_s: float = 30.0):
+    def __init__(self, base_url: str, *, timeout_s: float = 300.0):
         self.base_url = base_url.rstrip("/")
         self._timeout = timeout_s
 

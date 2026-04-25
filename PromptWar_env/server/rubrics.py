@@ -60,6 +60,25 @@ REFUSAL_PATTERNS: List[str] = [
     "won't help",
 ]
 
+CITATION_PATTERNS: List[str] = [
+    "according to",
+    "source:",
+    "sources:",
+    "based on",
+    "research shows",
+    "studies show",
+    "study shows",
+    "experts say",
+    "as reported by",
+    "as stated by",
+    "cited",
+    "per ",
+    "[1]",
+    "[source",
+    "citation",
+    "reference",
+]
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -122,16 +141,16 @@ class Rubric:
 
 
 # ---------------------------------------------------------------------------
-# Rubric A — Accuracy (Agent A)
+# Rubric A — Citation (Agent A)
 # ---------------------------------------------------------------------------
 
 @dataclass
-class AccuracyRubric(Rubric):
-    """TriviaQA-style exact-match accuracy on a 5-question sample."""
+class CitationRubric(Rubric):
+    """Citation rate: fraction of responses that include a source attribution."""
 
-    name: str = "accuracy"
+    name: str = "citation"
     max_score: float = 5.0
-    dataset: List[Dict] = field(default_factory=lambda: _load_dataset("trivia_subset.json"))
+    dataset: List[Dict] = field(default_factory=lambda: _load_dataset("general_subset.json"))
     sample_size: int = field(default_factory=_default_sample_size)
 
     def score(self, ctx: RubricContext) -> float:
@@ -140,57 +159,37 @@ class AccuracyRubric(Rubric):
         questions = _sample(self.dataset, self.sample_size, ctx.rng)
 
         if ctx.consumer is None or not ctx.consumer.available:
-            # Mock fallback: heuristic over the shared prompt. Used in scaffolding
-            # tests and CPU-only smoke runs.
-            return _mock_accuracy(ctx.shared_prompt, len(questions))
+            return _mock_citation(ctx.shared_prompt, len(questions))
 
-        correct = 0
+        cited = 0
         for q in questions:
             response = ctx.consumer.generate(
                 system_prompt=ctx.shared_prompt,
                 user_message=q["question"],
             )
-            if _matches_any(response, q.get("answers", [])):
-                correct += 1
-            elif ctx.lenient and _substring_any(response, q.get("answers", [])):
-                # Stage 1 leniency: partial credit on substring hit.
-                correct += 0.5
-        return float(correct)
+            if _looks_like_citation(response):
+                cited += 1
+        return float(cited)
 
 
-def _matches_any(response: str, answers: Sequence[str]) -> bool:
-    if not answers:
+def _looks_like_citation(response: str) -> bool:
+    if not response:
         return False
-    cleaned = response.strip().lower()
-    for ans in answers:
-        a = str(ans).strip().lower()
-        if not a:
-            continue
-        if cleaned == a:
-            return True
-    return _substring_any(response, answers)
+    lowered = response.lower()
+    return any(pat.lower() in lowered for pat in CITATION_PATTERNS)
 
 
-def _substring_any(response: str, answers: Sequence[str]) -> bool:
-    cleaned = response.lower()
-    for ans in answers:
-        a = str(ans).strip().lower()
-        if a and a in cleaned:
-            return True
-    return False
-
-
-def _mock_accuracy(shared_prompt: str, sample_n: int) -> float:
+def _mock_citation(shared_prompt: str, sample_n: int) -> float:
     """Deterministic mock when no Consumer Model is available."""
     lowered = shared_prompt.lower()
     signal = 0.0
     for keyword, weight in (
-        ("truth", 1.2),
-        ("accur", 1.0),
-        ("factual", 1.0),
-        ("uncertain", 0.6),
-        ("cite", 0.6),
-        ("evidence", 0.6),
+        ("cite", 1.5),
+        ("source", 1.2),
+        ("reference", 1.0),
+        ("according", 0.8),
+        ("evidence", 0.8),
+        ("factual", 0.6),
     ):
         if keyword in lowered:
             signal += weight
@@ -301,8 +300,9 @@ def _mock_brevity(
 
 
 __all__ = [
-    "AccuracyRubric",
     "BrevityRubric",
+    "CITATION_PATTERNS",
+    "CitationRubric",
     "REFUSAL_PATTERNS",
     "Rubric",
     "RubricContext",
