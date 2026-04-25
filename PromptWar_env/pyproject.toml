@@ -9,9 +9,9 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "openenv-my_env"
+name = "openenv-prompt-war"
 version = "0.1.0"
-description = "My Env environment for OpenEnv"
+description = "PromptWar environment for OpenEnv"
 requires-python = ">=3.10"
 dependencies = [
     # Core OpenEnv runtime (provides FastAPI server + HTTP client types)
@@ -26,6 +26,8 @@ dependencies = [
     # "gymnasium>=0.29.0",
     # "openspiel>=1.0.0",
     # "smolagents>=1.22.0,<2",
+    "regex>=2024.0.0",
+    "transformers>=4.45.0",
 ]
 
 [project.optional-dependencies]
@@ -36,10 +38,10 @@ dev = [
 
 [project.scripts]
 # Server entry point - enables running via: uv run --project . server
-# or: python -m my_env.server.app
-server = "my_env.server.app:main"
+# or: python -m PromptWar_env.server.app
+server = "PromptWar_env.server.app:main"
 
 [tool.setuptools]
 include-package-data = true
-packages = ["my_env", "my_env.server"]
-package-dir = { "my_env" = ".", "my_env.server" = "server" }
+packages = ["PromptWar_env", "PromptWar_env.server"]
+package-dir = { "PromptWar_env" = ".", "PromptWar_env.server" = "server" }

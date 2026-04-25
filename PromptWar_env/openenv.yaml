@@ -1,7 +1,6 @@
 spec_version: 1
-name: my_env
+name: PromptWar_env
 type: space
 runtime: fastapi
 app: server.app:app
 port: 8000
-

@@ -5,9 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 """
-FastAPI application for the My Env Environment.
+FastAPI application for the PromptWar environment.
 
-This module creates an HTTP server that exposes the MyEnvironment
+This module creates an HTTP server that exposes the PromptWar environment
 over HTTP and WebSocket endpoints, compatible with EnvClient.
 
 Endpoints:
@@ -36,19 +36,19 @@ except Exception as e:  # pragma: no cover
     ) from e
 
 try:
-    from ..models import MyAction, MyObservation
-    from .my_env_environment import MyEnvironment
+    from ..models import PromptWarAction, PromptWarObservation
+    from .prompt_war_environment import PromptWarEnvironment
 except ModuleNotFoundError:
-    from models import MyAction, MyObservation
-    from server.my_env_environment import MyEnvironment
+    from models import PromptWarAction, PromptWarObservation
+    from server.prompt_war_environment import PromptWarEnvironment
 
 
 # Create the app with web interface and README integration
 app = create_app(
-    MyEnvironment,
-    MyAction,
-    MyObservation,
-    env_name="my_env",
+    PromptWarEnvironment,
+    PromptWarAction,
+    PromptWarObservation,
+    env_name="PromptWar_env",
     max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
 )
 
@@ -60,7 +60,7 @@ def main(host: str = "0.0.0.0", port: int = 8000):
     This function enables running the server without Docker:
         uv run --project . server
         uv run --project . server --port 8001
-        python -m my_env.server.app
+        python -m PromptWar_env.server.app
 
     Args:
         host: Host address to bind to (default: "0.0.0.0")
@@ -68,7 +68,7 @@ def main(host: str = "0.0.0.0", port: int = 8000):
 
     For production deployments, consider using uvicorn directly with
     multiple workers:
-        uvicorn my_env.server.app:app --workers 4
+        uvicorn PromptWar_env.server.app:app --workers 4
     """
     import uvicorn
 
