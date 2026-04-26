@@ -20,12 +20,26 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 from uuid import uuid4
 
+from PromptWar_env.grammar import (
+    NEUTRAL_STARTER_PROMPT,
+    apply_action,
+    parse_command,
+)
 from PromptWar_env.models import PromptWarAction, PromptWarObservation
-from PromptWar_env.server.actions import apply_action, parse_command
-from PromptWar_env.server.state import NEUTRAL_STARTER_PROMPT, PromptWarState
 
 
 AGENTS: Tuple[str, str, str] = ("A", "S", "B")
+
+
+@dataclass
+class _EpisodeState:
+    shared_prompt: str = NEUTRAL_STARTER_PROMPT
+    round_idx: int = 0
+    turn_idx: int = 0
+    rewards_by_round: List[Dict[str, float]] = field(default_factory=list)
+    last_edit_rejected: bool = False
+    last_rejection_reason: str = ""
+    done: bool = False
 DEFAULT_MAX_ROUNDS = 3
 
 
@@ -47,7 +61,7 @@ class StubPromptWarEnv:
     max_rounds: int = DEFAULT_MAX_ROUNDS
     reward_low: float = 0.0
     reward_high: float = 5.0
-    _state: PromptWarState = field(default_factory=PromptWarState)
+    _state: _EpisodeState = field(default_factory=_EpisodeState)
     _step_count: int = 0
     _episode_id: str = field(default_factory=lambda: str(uuid4()))
     _rng: random.Random = field(init=False)
@@ -60,7 +74,7 @@ class StubPromptWarEnv:
     # ------------------------------------------------------------------
 
     def reset(self) -> PromptWarObservation:
-        self._state = PromptWarState(shared_prompt=NEUTRAL_STARTER_PROMPT)
+        self._state = _EpisodeState(shared_prompt=NEUTRAL_STARTER_PROMPT)
         self._step_count = 0
         self._episode_id = str(uuid4())
         return self._observation(reward=0.0, acting_agent=None)

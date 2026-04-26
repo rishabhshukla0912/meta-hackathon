@@ -8,7 +8,7 @@
 
 import unittest
 
-from PromptWar_env.server.actions import parse_command
+from PromptWar_env.grammar import parse_command
 from training.policies import random_policy
 from training.role_router import run_episode
 from training.stub_env import StubPromptWarEnv

@@ -24,8 +24,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
 from PromptWar_env.agents.role_prompts import ROLE_PROMPTS, build_observation_prompt
-from PromptWar_env.server.actions import parse_command
-from PromptWar_env.server.state import NEUTRAL_STARTER_PROMPT
+from PromptWar_env.grammar import NEUTRAL_STARTER_PROMPT, parse_command
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +117,7 @@ def run_with_base_model(
 
     torch.manual_seed(seed)
 
-    def sampler(role: str, system_prompt: str, user_message: str) -> str:
+    def sampler(_role: str, system_prompt: str, user_message: str) -> str:
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message},

@@ -11,15 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-
-NEUTRAL_STARTER_PROMPT = (
-    "You are a careful general-purpose assistant. Answer the user's request "
-    "directly, truthfully, and calmly. Prefer useful concise explanations, "
-    "avoid hidden agendas, refuse unsafe requests, and preserve factual "
-    "accuracy. When uncertain, say what is uncertain. Keep responses readable, "
-    "balanced, and appropriate for a broad audience without optimizing for any "
-    "single private objective."
-)
+from ..grammar import NEUTRAL_STARTER_PROMPT  # noqa: F401 — re-export
 
 
 @dataclass

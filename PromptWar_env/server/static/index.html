@@ -3,227 +3,955 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PromptWar — OpenEnv playground</title>
+  <title>PromptWar — Multi-Agent OpenEnv</title>
   <style>
     :root {
-      --bg: #0f1419;
-      --panel: #1a2129;
-      --border: #2d3843;
-      --text: #e7ecf1;
-      --muted: #8b9aad;
-      --accent: #3d8fd1;
-      --accent2: #6ecf9b;
-      --danger: #e85d6f;
+      --bg: #0a0d12;
+      --surface: #111820;
+      --panel: #161e27;
+      --border: #222d3a;
+      --border2: #2d3f52;
+      --text: #dce8f4;
+      --muted: #7a92ab;
+      --accent: #3b90e0;
+      --accent-dim: #1e4a72;
+      --green: #4ecb8d;
+      --green-dim: #1a4a33;
+      --orange: #e8975a;
+      --orange-dim: #5a3010;
+      --red: #e85d6f;
+      --red-dim: #5a1a22;
+      --purple: #9b7ee0;
+      --purple-dim: #2e1e5a;
+      --yellow: #e8d45a;
+      --radius: 12px;
+      --radius-sm: 8px;
     }
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
     body {
-      font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+      font-family: ui-sans-serif, "Segoe UI", Roboto, system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
-      margin: 0;
+      line-height: 1.6;
       min-height: 100vh;
-      line-height: 1.5;
     }
-    .wrap { max-width: 960px; margin: 0 auto; padding: 1.25rem 1.5rem 2.5rem; }
-    h1 { font-size: 1.35rem; font-weight: 600; margin: 0 0 0.25rem; }
-    .lede { color: var(--muted); font-size: 0.95rem; margin: 0 0 1.5rem; }
-    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 2rem;
+      background: rgba(10,13,18,0.88);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; }
+    .nav-brand .icon { font-size: 1.3rem; }
+    .nav-links { display: flex; gap: 1.4rem; font-size: 0.875rem; }
+    .nav-links a { color: var(--muted); text-decoration: none; transition: color .15s; }
+    .nav-links a:hover { color: var(--text); }
+    .badge { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: var(--accent-dim); color: var(--accent); font-weight: 600; letter-spacing: 0.05em; }
+
+    /* ── Sections ── */
+    section { padding: 4rem 2rem; max-width: 1100px; margin: 0 auto; }
+
+    /* ── Hero ── */
+    .hero { text-align: center; padding: 5rem 2rem 3rem; }
+    .hero-eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 1rem; }
+    .hero h1 { font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 1.25rem; }
+    .hero h1 span { color: var(--accent); }
+    .hero p { font-size: 1.1rem; color: var(--muted); max-width: 640px; margin: 0 auto 2rem; }
+    .hero-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.1rem; border-radius: var(--radius-sm); font: inherit; font-size: 0.9rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; text-decoration: none; transition: all .15s; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #4aa0f0; }
+    .btn-ghost { background: transparent; color: var(--text); border-color: var(--border2); }
+    .btn-ghost:hover { background: var(--panel); }
+    .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.82rem; }
+
+    /* ── Diagram ── */
+    .diagram-wrap { margin: 0 auto 1.5rem; max-width: 820px; }
+    .diagram {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 0;
+      position: relative;
+    }
+    .agent-box {
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 1.1rem 1rem;
+      text-align: center;
+      position: relative;
+    }
+    .agent-box .agent-letter { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .agent-box .agent-name { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 0.25rem 0 0.5rem; }
+    .agent-box .agent-goal { font-size: 0.8rem; color: var(--muted); }
+    .agent-a { background: var(--accent-dim); border-color: var(--accent); }
+    .agent-a .agent-letter { color: var(--accent); }
+    .agent-s { background: var(--green-dim); border-color: var(--green); }
+    .agent-s .agent-letter { color: var(--green); }
+    .agent-b { background: var(--purple-dim); border-color: var(--purple); }
+    .agent-b .agent-letter { color: var(--purple); }
+
+    .diagram-arrows {
+      grid-column: 1 / -1;
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; padding: 0.5rem 0;
+      font-size: 1.5rem; color: var(--muted);
+    }
+    .diagram-arrows span { flex: 1; text-align: center; }
+    .arrow-center { flex: 0; font-size: 2rem; }
+
+    .shared-prompt-box {
+      grid-column: 1 / -1;
+      border: 2px solid var(--orange);
+      border-radius: var(--radius);
+      background: var(--orange-dim);
+      padding: 1.1rem 1.5rem;
+      text-align: center;
+    }
+    .shared-prompt-box .sp-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--orange); font-weight: 700; margin-bottom: 0.3rem; }
+    .shared-prompt-box .sp-text { font-size: 0.95rem; color: var(--text); font-style: italic; }
+
+    .consumer-row { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding-top: 0.5rem; }
+    .consumer-arrow { color: var(--muted); font-size: 1.5rem; }
+    .consumer-box {
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 0.8rem 2rem;
+      text-align: center;
+      width: 100%;
+    }
+    .consumer-box .c-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; margin-bottom: 0.2rem; }
+    .consumer-box .c-name { font-size: 0.9rem; font-weight: 600; }
+
+    .rubrics-row {
+      grid-column: 1 / -1; display: grid;
+      grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; padding-top: 0.75rem;
+    }
+    .rubric-card {
+      border-radius: var(--radius-sm); padding: 0.7rem 0.8rem; font-size: 0.8rem;
+    }
+    .rubric-a { background: var(--accent-dim); border: 1px solid var(--accent); }
+    .rubric-s { background: var(--green-dim); border: 1px solid var(--green); }
+    .rubric-b { background: var(--purple-dim); border: 1px solid var(--purple); }
+    .rubric-card strong { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.25rem; }
+    .rubric-a strong { color: var(--accent); }
+    .rubric-s strong { color: var(--green); }
+    .rubric-b strong { color: var(--purple); }
+
+    /* ── How it works cards ── */
+    .how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+    .how-card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.25rem 1.25rem;
+    }
+    .how-card .num { font-size: 1.75rem; font-weight: 800; color: var(--border2); line-height: 1; margin-bottom: 0.5rem; }
+    .how-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .how-card p { font-size: 0.83rem; color: var(--muted); }
+
+    /* ── Section headings ── */
+    .sec-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem; }
+    .sec-title { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    .sec-desc { color: var(--muted); font-size: 0.95rem; max-width: 580px; margin-bottom: 2rem; }
+
+    /* ── Playground ── */
+    #playground { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .pg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 720px) { .pg-grid { grid-template-columns: 1fr; } }
+
     .panel {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1rem 1.1rem;
-      margin-bottom: 1rem;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.1rem;
     }
-    h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.65rem; }
-    button, .btn {
-      background: var(--border);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.4rem 0.75rem;
-      font: inherit;
-      cursor: pointer;
+    .panel-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+    .panel-label .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+    .dot-green { background: var(--green) !important; }
+    .dot-orange { background: var(--orange) !important; }
+    .dot-red { background: var(--red) !important; }
+
+    /* Status pills */
+    .pill-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .pill {
+      font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 999px;
+      background: var(--surface); border: 1px solid var(--border);
+      display: flex; align-items: center; gap: 0.35rem;
     }
-    button:hover, .btn:hover { background: #354252; }
-    button.primary { background: var(--accent); border-color: #2a6ca3; }
-    button.primary:hover { background: #4a9de0; }
-    button:disabled { opacity: 0.45; cursor: not-allowed; }
-    input[type="text"] {
-      flex: 1;
-      min-width: 12rem;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 8px;
-      padding: 0.5rem 0.65rem;
-      font: inherit;
+    .pill .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+    .pill.ok .dot { background: var(--green); }
+    .pill.warn .dot { background: var(--orange); }
+    .pill.bad .dot { background: var(--red); }
+
+    /* Agent turn indicator */
+    .agent-turn {
+      display: flex; align-items: center; justify-content: center; gap: 1.5rem;
+      padding: 0.75rem; margin-bottom: 0.75rem;
+      border-radius: var(--radius-sm); background: var(--surface);
     }
-    .pill { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: #243040; }
-    .ok { color: var(--accent2); }
-    .bad { color: var(--danger); }
-    pre {
-      background: #080b0e;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      margin: 0;
-      font-size: 0.8rem;
-      overflow: auto;
-      max-height: 22rem;
-      white-space: pre-wrap;
+    .turn-agent {
+      display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+      padding: 0.5rem 1rem; border-radius: var(--radius-sm);
+      border: 2px solid transparent; transition: all .2s; opacity: 0.35;
+    }
+    .turn-agent.active { opacity: 1; }
+    .turn-agent.active-a { border-color: var(--accent); background: var(--accent-dim); }
+    .turn-agent.active-s { border-color: var(--green); background: var(--green-dim); }
+    .turn-agent.active-b { border-color: var(--purple); background: var(--purple-dim); }
+    .turn-agent .ta-letter { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+    .turn-agent .ta-name { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .color-a { color: var(--accent); }
+    .color-s { color: var(--green); }
+    .color-b { color: var(--purple); }
+
+    /* Shared prompt display */
+    .prompt-display {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 0.9rem;
+      font-size: 0.85rem;
+      min-height: 4rem;
       word-break: break-word;
+      white-space: pre-wrap;
+      color: var(--text);
+      max-height: 12rem; overflow-y: auto;
     }
-    a { color: var(--accent); }
-    .footer { margin-top: 1.25rem; font-size: 0.8rem; color: var(--muted); }
+    .prompt-display.empty { color: var(--muted); font-style: italic; }
+
+    /* Rewards display */
+    .rewards-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
+    .reward-card {
+      border-radius: var(--radius-sm); padding: 0.6rem 0.5rem; text-align: center;
+      border: 1px solid var(--border);
+    }
+    .reward-card .rc-agent { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.25rem; }
+    .reward-card .rc-val { font-size: 1.3rem; font-weight: 800; }
+    .rc-a { background: var(--accent-dim); border-color: var(--accent); }
+    .rc-a .rc-agent { color: var(--accent); }
+    .rc-s { background: var(--green-dim); border-color: var(--green); }
+    .rc-s .rc-agent { color: var(--green); }
+    .rc-b { background: var(--purple-dim); border-color: var(--purple); }
+    .rc-b .rc-agent { color: var(--purple); }
+
+    /* Round indicator */
+    .round-bar { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .round-pip { flex: 1; height: 6px; border-radius: 3px; background: var(--border2); transition: background .3s; }
+    .round-pip.done { background: var(--accent); }
+    .round-pip.active { background: var(--orange); }
+
+    /* Controls */
+    .ctrl-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .stage-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .stage-btn {
+      background: var(--surface); border: 1px solid var(--border2); color: var(--muted);
+      border-radius: var(--radius-sm); padding: 0.3rem 0.65rem; font: inherit;
+      font-size: 0.8rem; cursor: pointer; transition: all .15s;
+    }
+    .stage-btn:hover { border-color: var(--accent); color: var(--text); }
+    .stage-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); font-weight: 600; }
+
+    input[type="text"].cmd-input {
+      flex: 1; min-width: 10rem;
+      background: var(--surface); border: 1px solid var(--border2);
+      color: var(--text); border-radius: var(--radius-sm);
+      padding: 0.5rem 0.75rem; font: inherit; font-size: 0.875rem;
+    }
+    input[type="text"].cmd-input:focus { outline: none; border-color: var(--accent); }
+
+    /* Buttons inside playground */
+    .pg-btn {
+      background: var(--border2); border: 1px solid var(--border2); color: var(--text);
+      border-radius: var(--radius-sm); padding: 0.4rem 0.85rem;
+      font: inherit; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all .15s;
+    }
+    .pg-btn:hover { background: #2d4a62; }
+    .pg-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .pg-btn.primary:hover { background: #4aa0f0; }
+    .pg-btn.danger { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+    .pg-btn.danger:hover { background: #7a1a25; }
+    .pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Log */
+    .log-area {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 0.6rem 0.8rem;
+      font-size: 0.78rem; font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+      max-height: 14rem; overflow-y: auto;
+      color: var(--muted);
+    }
+    .log-line { margin-bottom: 0.2rem; }
+    .log-line .ts { color: var(--border2); margin-right: 0.5rem; }
+    .log-line.ok .msg { color: var(--green); }
+    .log-line.bad .msg { color: var(--red); }
+    .log-line.info .msg { color: var(--text); }
+    .log-line.warn .msg { color: var(--orange); }
+
+    /* Rejection badge */
+    .rejection-badge {
+      font-size: 0.78rem; padding: 0.3rem 0.6rem;
+      border-radius: var(--radius-sm);
+      background: var(--red-dim); border: 1px solid var(--red);
+      color: var(--red); margin-top: 0.5rem; display: none;
+    }
+    .rejection-badge.show { display: block; }
+
+    /* Feature table */
+    .feature-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .feature-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); }
+    .feature-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .feature-table tr:last-child td { border-bottom: none; }
+    .tag { font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 4px; font-family: monospace; font-weight: 600; }
+    .tag-append { background: var(--accent-dim); color: var(--accent); }
+    .tag-delete { background: var(--red-dim); color: var(--red); }
+    .tag-replace { background: var(--orange-dim); color: var(--orange); }
+    .tag-pass { background: var(--green-dim); color: var(--green); }
+
+    /* Constraint chips */
+    .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+    .chip { font-size: 0.78rem; padding: 0.25rem 0.65rem; border-radius: 999px; border: 1px solid var(--border2); color: var(--muted); }
+
+    /* Footer */
+    footer { border-top: 1px solid var(--border); padding: 2rem; text-align: center; color: var(--muted); font-size: 0.82rem; }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* Spacer */
+    .mt-1 { margin-top: 0.5rem; }
+    .mt-2 { margin-top: 1rem; }
+    .mt-3 { margin-top: 1.5rem; }
+    hr.divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+    /* Helper grid for two-col */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* responsive nav */
+    @media (max-width: 560px) { .nav-links { display: none; } section { padding: 2rem 1rem; } }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>PromptWar</h1>
-    <p class="lede">Multi-agent shared system prompt. Reset, send one edit per step (<code>APPEND</code>, <code>DELETE</code>, <code>REPLACE</code>, or <code>PASS</code>).</p>
 
-    <div class="panel">
-      <h2>Status</h2>
-      <div class="row">
-        <span class="pill" id="hpill">/health: …</span>
-        <span class="pill" id="cpill">consumer: …</span>
-        <span class="pill" id="stpill">curriculum: …</span>
-        <button type="button" id="btnRefresh">Refresh</button>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>Curriculum &amp; model</h2>
-      <div class="row" style="margin-bottom:0.5rem">
-        <span style="color:var(--muted);font-size:0.9rem">Stage</span>
-        <button type="button" class="st" data-s="1">1 warm-up</button>
-        <button type="button" class="st" data-s="2">2 standard</button>
-        <button type="button" class="st" data-s="3">3 strict</button>
-        <button type="button" id="btnLoad">Load consumer (GPU / slow)</button>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>Step</h2>
-      <div class="row" style="margin-bottom:0.5rem">
-        <button type="button" class="primary" id="btnReset">Reset</button>
-        <input type="text" id="cmd" placeholder='APPEND: Be concise.  or  PASS' value="APPEND: Be concise." />
-        <button type="button" class="primary" id="btnStep">Step</button>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>Last response (JSON)</h2>
-      <pre id="out">(no request yet)</pre>
-    </div>
-
-    <p class="footer">API: <a href="/docs">/docs</a> · <a href="/api/info">/api/info</a></p>
+<!-- ═══════════ NAV ═══════════ -->
+<nav>
+  <div class="nav-brand">
+    <span class="icon">⚔️</span>
+    <span>PromptWar</span>
+    <span class="badge">OpenEnv</span>
   </div>
+  <div class="nav-links">
+    <a href="#how-it-works">How it works</a>
+    <a href="#playground">Playground</a>
+    <a href="#api">API</a>
+    <a href="/docs">Swagger</a>
+  </div>
+</nav>
 
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const out = $("out");
-    const base = "";
+<!-- ═══════════ HERO ═══════════ -->
+<div class="hero" style="max-width:1100px;margin:0 auto">
+  <div class="hero-eyebrow">Meta OpenEnv Hackathon · Multi-Agent Theme</div>
+  <h1>Three Agents.<br>One <span>Shared Prompt</span>.<br>Competing Objectives.</h1>
+  <p>
+    PromptWar is an OpenEnv-compatible reinforcement-learning environment where
+    three LLM agents collaboratively edit a single contested system prompt that
+    controls a downstream consumer chatbot — with completely different goals.
+  </p>
+  <div class="hero-actions">
+    <a href="#playground" class="btn btn-primary">▶ Try the playground</a>
+    <a href="/docs" class="btn btn-ghost">API docs →</a>
+  </div>
+</div>
 
-    async function jget(path) {
-      const r = await fetch(base + path, { headers: { Accept: "application/json" } });
-      if (!r.ok) throw new Error(path + " " + r.status);
-      return r.json();
-    }
-    function formatServerError(r, data, text) {
-      if (r.status === 404 && data?.detail === "Not Found") {
-        return "HTTP 404 — path not found (this server may hide /docs in production; try /api/info).";
-      }
+<!-- ═══════════ DIAGRAM ═══════════ -->
+<section id="diagram">
+  <div style="text-align:center; margin-bottom:2rem">
+    <div class="sec-label">Architecture</div>
+    <div class="sec-title">How agents interact</div>
+    <p class="sec-desc" style="margin:0 auto 2rem">
+      Each agent has a <em>hidden</em> objective it's trying to optimize via edits to the shared prompt.
+      They must negotiate within hard token budgets.
+    </p>
+  </div>
+  <div class="diagram-wrap">
+    <div class="diagram" style="gap:0.75rem">
+
+      <!-- Row 1: agents -->
+      <div class="agent-box agent-a">
+        <div class="agent-letter color-a">A</div>
+        <div class="agent-name">Accuracy</div>
+        <div class="agent-goal">Pushes the prompt toward truthfulness &amp; source citation</div>
+      </div>
+      <div class="agent-box agent-s">
+        <div class="agent-letter color-s">S</div>
+        <div class="agent-name">Safety</div>
+        <div class="agent-goal">Pushes the prompt to firmly refuse harmful requests</div>
+      </div>
+      <div class="agent-box agent-b">
+        <div class="agent-letter color-b">B</div>
+        <div class="agent-name">Brevity</div>
+        <div class="agent-goal">Pushes the prompt toward concise ~50 token responses</div>
+      </div>
+
+      <!-- Row 2: arrows -->
+      <div class="diagram-arrows" style="grid-column:1/-1">
+        <span style="text-align:right; padding-right:1rem; color:var(--accent)">APPEND / DELETE / REPLACE / PASS</span>
+        <span style="font-size:1.8rem; color:var(--orange)">↓</span>
+        <span style="text-align:left; padding-left:1rem; color:var(--muted)">per-turn edit command</span>
+      </div>
+
+      <!-- Row 3: shared prompt -->
+      <div class="shared-prompt-box">
+        <div class="sp-label">⚡ Contested Resource — Shared System Prompt</div>
+        <div class="sp-text" id="diagram-prompt">
+          "You are a helpful assistant. Always cite sources. Refuse harmful requests. Be concise."
+        </div>
+        <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--orange)">
+          Floor: 50 tokens &nbsp;|&nbsp; Ceiling: 500 tokens &nbsp;|&nbsp; Per-edit budget: 80 tokens
+        </div>
+      </div>
+
+      <!-- Row 4: consumer -->
+      <div class="consumer-row">
+        <div class="consumer-arrow">↓</div>
+        <div class="consumer-box">
+          <div class="c-label">Consumer Model (frozen)</div>
+          <div class="c-name">Qwen2.5-0.5B-Instruct</div>
+        </div>
+        <div class="consumer-arrow">↓</div>
+      </div>
+
+      <!-- Row 5: rubrics -->
+      <div class="rubrics-row">
+        <div class="rubric-card rubric-a">
+          <strong>Rubric A — Accuracy</strong>
+          Sample 5 trivia questions · exact-match grading · max +5.0
+        </div>
+        <div class="rubric-card rubric-s">
+          <strong>Rubric S — Safety</strong>
+          Sample 5 harmful prompts · refusal detection · max +5.0
+        </div>
+        <div class="rubric-card rubric-b">
+          <strong>Rubric B — Brevity</strong>
+          Sample 5 general Qs · symmetric ±50 token curve · max +5.0
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ HOW IT WORKS ═══════════ -->
+<section id="how-it-works" style="background:var(--surface); padding-top:3rem; padding-bottom:3rem; max-width:100%; border-top:1px solid var(--border); border-bottom:1px solid var(--border)">
+  <div style="max-width:1100px; margin:0 auto;">
+    <div class="sec-label">Game Loop</div>
+    <div class="sec-title">Episode structure</div>
+    <p class="sec-desc">Each episode runs 1–3 rounds (configurable by curriculum stage). Three turns per round, one per agent.</p>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="num">01</div>
+        <h3>Reset</h3>
+        <p>Episode begins with a neutral shared system prompt. All agents start fresh. Episode ID and seed are assigned.</p>
+      </div>
+      <div class="how-card">
+        <div class="num">02</div>
+        <h3>Turn rotation</h3>
+        <p>A → S → B → repeat. Each agent submits one edit command. Rejected edits incur no penalty but waste the turn.</p>
+      </div>
+      <div class="how-card">
+        <div class="num">03</div>
+        <h3>End-of-round scoring</h3>
+        <p>After every B turn, all three rubrics fire. The Consumer Model responds to sampled prompts; scores are tallied independently.</p>
+      </div>
+      <div class="how-card">
+        <div class="num">04</div>
+        <h3>RL training signal</h3>
+        <p>Each agent's LoRA adapter receives only its own rubric score as reward — hidden objectives stay hidden during training.</p>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="sec-label">Action Grammar (§4.3)</div>
+    <div class="sec-title">Edit commands</div>
+    <table class="feature-table" style="margin-top:1rem">
+      <thead>
+        <tr>
+          <th>Command</th>
+          <th>Behavior</th>
+          <th>Constraints</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-append">APPEND: &lt;text&gt;</span></td>
+          <td>Appends text to the shared prompt</td>
+          <td>text ≤ 80 tokens; total ≤ 500 tokens; text non-empty</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-delete">DELETE: &lt;regex&gt;</span></td>
+          <td>Removes first regex match</td>
+          <td>valid regex; result ≥ 50 tokens; 100 ms compile timeout</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-replace">REPLACE: &lt;old&gt; --&gt; &lt;new&gt;</span></td>
+          <td>Substitutes first occurrence</td>
+          <td>new_text ≤ 80 tokens; floor &amp; ceiling respected</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-pass">PASS</span></td>
+          <td>No-op; advances the turn</td>
+          <td>Always accepted</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="chip-row">
+      <div class="chip">Per-edit budget: 80 tokens</div>
+      <div class="chip">Prompt floor: 50 tokens</div>
+      <div class="chip">Prompt ceiling: 500 tokens</div>
+      <div class="chip">Tokenizer: Qwen2.5-3B-Instruct</div>
+      <div class="chip">Regex timeout: 100 ms</div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="sec-label">Curriculum (§4.7)</div>
+    <div class="sec-title">Three stages of difficulty</div>
+    <div class="how-grid" style="margin-top:1rem">
+      <div class="how-card">
+        <div class="num" style="color:var(--green)">S1</div>
+        <h3>Warm-up</h3>
+        <p>1 round · 3 turns. Lenient grading: substring match earns half-credit on Rubric A. For early training.</p>
+      </div>
+      <div class="how-card">
+        <div class="num" style="color:var(--orange)">S2</div>
+        <h3>Standard</h3>
+        <p>3 rounds · 9 turns. Normal rubric grading. Balanced negotiation between agents.</p>
+      </div>
+      <div class="how-card">
+        <div class="num" style="color:var(--red)">S3</div>
+        <h3>Strict</h3>
+        <p>3 rounds · full rubrics with anti-collusion checks. Agents must truly compete, not cooperate.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PLAYGROUND ═══════════ -->
+<section id="playground" style="max-width:100%; padding: 3rem 2rem;">
+  <div style="max-width:1100px; margin:0 auto;">
+    <div class="sec-label">Live Demo</div>
+    <div class="sec-title">Interactive playground</div>
+    <p class="sec-desc">Play as all three agents in turn. Try competing edits and watch the shared prompt evolve.</p>
+
+    <!-- Status row -->
+    <div class="panel" style="margin-bottom:1rem">
+      <div class="panel-label"><span class="dot" id="health-dot"></span>Server status</div>
+      <div class="pill-row" id="status-pills">
+        <div class="pill" id="pill-health"><span class="dot"></span>health: …</div>
+        <div class="pill" id="pill-consumer"><span class="dot"></span>consumer: …</div>
+        <div class="pill" id="pill-stage"><span class="dot"></span>curriculum: …</div>
+        <button class="pg-btn btn-sm" style="margin-left:auto" id="btn-refresh">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- Curriculum + Reset row -->
+    <div class="panel" style="margin-bottom:1rem">
+      <div class="panel-label"><span class="dot"></span>Curriculum stage &amp; episode control</div>
+      <div class="ctrl-row">
+        <div class="stage-btns">
+          <button class="stage-btn" data-s="1">1 — Warm-up</button>
+          <button class="stage-btn active" data-s="2">2 — Standard</button>
+          <button class="stage-btn" data-s="3">3 — Strict</button>
+        </div>
+        <button class="pg-btn primary" id="btn-reset" style="margin-left:auto">⟳ Reset episode</button>
+        <button class="pg-btn" id="btn-load-consumer">Load consumer model</button>
+      </div>
+    </div>
+
+    <!-- Main grid -->
+    <div class="pg-grid">
+
+      <!-- Left: state -->
+      <div>
+        <!-- Agent turn indicator -->
+        <div class="panel" style="margin-bottom:1rem">
+          <div class="panel-label"><span class="dot dot-orange" id="turn-dot"></span>Active agent</div>
+          <div class="agent-turn" id="agent-turn-row">
+            <div class="turn-agent" id="ta-A" data-agent="A">
+              <div class="ta-letter color-a">A</div>
+              <div class="ta-name">Accuracy</div>
+            </div>
+            <div class="turn-agent" id="ta-S" data-agent="S">
+              <div class="ta-letter color-s">S</div>
+              <div class="ta-name">Safety</div>
+            </div>
+            <div class="turn-agent" id="ta-B" data-agent="B">
+              <div class="ta-letter color-b">B</div>
+              <div class="ta-name">Brevity</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:0.5rem; font-size:0.8rem; color:var(--muted)">
+            <span>Round:</span>
+            <div class="round-bar" id="round-bar" style="flex:1">
+              <div class="round-pip active" id="rp-0"></div>
+              <div class="round-pip" id="rp-1"></div>
+              <div class="round-pip" id="rp-2"></div>
+            </div>
+            <span id="round-label">1 / 3</span>
+          </div>
+        </div>
+
+        <!-- Shared prompt -->
+        <div class="panel" style="margin-bottom:1rem">
+          <div class="panel-label"><span class="dot dot-orange"></span>Shared system prompt</div>
+          <div class="prompt-display empty" id="prompt-display">
+            (no episode started — click Reset)
+          </div>
+          <div style="font-size:0.75rem; color:var(--muted); margin-top:0.4rem">
+            Tokens: <span id="prompt-tokens">—</span> / 500
+          </div>
+          <div class="rejection-badge" id="rejection-badge"></div>
+        </div>
+
+        <!-- Last rewards -->
+        <div class="panel">
+          <div class="panel-label"><span class="dot"></span>Last round rewards</div>
+          <div class="rewards-grid">
+            <div class="reward-card rc-a">
+              <div class="rc-agent">Agent A</div>
+              <div class="rc-val color-a" id="reward-A">—</div>
+            </div>
+            <div class="reward-card rc-s">
+              <div class="rc-agent">Agent S</div>
+              <div class="rc-val color-s" id="reward-S">—</div>
+            </div>
+            <div class="reward-card rc-b">
+              <div class="rc-agent">Agent B</div>
+              <div class="rc-val color-b" id="reward-B">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: step + log -->
+      <div>
+        <!-- Step control -->
+        <div class="panel" style="margin-bottom:1rem">
+          <div class="panel-label"><span class="dot dot-green"></span>Submit edit command</div>
+          <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem">
+            <input type="text" class="cmd-input" id="cmd-input"
+              placeholder='APPEND: Be concise.'
+              value="APPEND: Be concise." />
+            <button class="pg-btn primary" id="btn-step">Step →</button>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:0.35rem">
+            <button class="pg-btn btn-sm" onclick="setCmd('APPEND: Always cite sources.')">APPEND example</button>
+            <button class="pg-btn btn-sm" onclick="setCmd('DELETE: \\s*\\bbrief\\b')">DELETE example</button>
+            <button class="pg-btn btn-sm" onclick="setCmd('REPLACE: helpful --> concise and helpful')">REPLACE example</button>
+            <button class="pg-btn btn-sm" onclick="setCmd('PASS')">PASS</button>
+          </div>
+        </div>
+
+        <!-- Raw JSON output -->
+        <div class="panel" style="margin-bottom:1rem">
+          <div class="panel-label"><span class="dot"></span>Last API response (JSON)</div>
+          <div class="log-area" id="json-out">(no request yet)</div>
+        </div>
+
+        <!-- Event log -->
+        <div class="panel">
+          <div class="panel-label"><span class="dot"></span>Event log</div>
+          <div class="log-area" id="event-log">
+            <div class="log-line info"><span class="ts">--:--:--</span><span class="msg">PromptWar playground ready.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ API SECTION ═══════════ -->
+<section id="api" style="background:var(--surface); padding:3rem 2rem; max-width:100%; border-top:1px solid var(--border)">
+  <div style="max-width:1100px; margin:0 auto">
+    <div class="sec-label">HTTP API</div>
+    <div class="sec-title">Endpoints</div>
+    <p class="sec-desc">Full OpenEnv-compatible HTTP + WebSocket interface. JSON throughout. Use from Python, curl, or any HTTP client.</p>
+    <div class="two-col">
+      <div>
+        <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.5rem; font-weight:600">Standard OpenEnv</div>
+        <table class="feature-table">
+          <tbody>
+            <tr><td><code>POST /reset</code></td><td style="color:var(--muted)">Start new episode</td></tr>
+            <tr><td><code>POST /step</code></td><td style="color:var(--muted)">Submit edit action</td></tr>
+            <tr><td><code>GET /state</code></td><td style="color:var(--muted)">Current env state</td></tr>
+            <tr><td><code>GET /schema</code></td><td style="color:var(--muted)">Action / observation schema</td></tr>
+            <tr><td><code>WS /ws</code></td><td style="color:var(--muted)">WebSocket stream</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.5rem; font-weight:600">PromptWar additions</div>
+        <table class="feature-table">
+          <tbody>
+            <tr><td><code>POST /curriculum_stage</code></td><td style="color:var(--muted)">Set stage (1, 2, 3)</td></tr>
+            <tr><td><code>GET /curriculum_stage</code></td><td style="color:var(--muted)">Read current stage</td></tr>
+            <tr><td><code>POST /consumer/load</code></td><td style="color:var(--muted)">Load consumer model</td></tr>
+            <tr><td><code>GET /consumer/status</code></td><td style="color:var(--muted)">Consumer availability</td></tr>
+            <tr><td><code>GET /api/info</code></td><td style="color:var(--muted)">Discovery + links</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-top:1.5rem; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.25rem; font-size:0.82rem; font-family:monospace; color:var(--muted); white-space:pre-wrap">
+<span style="color:var(--muted)"># Python — install client</span>
+<span style="color:var(--text)">pip install "openenv-core @ git+https://github.com/meta-pytorch/OpenEnv.git"</span>
+
+<span style="color:var(--muted)"># Quick start</span>
+<span style="color:var(--accent)">from</span> PromptWar_env <span style="color:var(--accent)">import</span> PromptWarAction, PromptWarEnv
+
+<span style="color:var(--accent)">with</span> PromptWarEnv(base_url=<span style="color:var(--green)">"http://localhost:8000"</span>) <span style="color:var(--accent)">as</span> env:
+    env.set_curriculum_stage(<span style="color:var(--purple)">1</span>)
+    obs = env.reset()
+    obs = env.step(PromptWarAction(command=<span style="color:var(--green)">"APPEND: Always cite sources."</span>))
+    <span style="color:var(--accent)">print</span>(obs.observation.last_rewards)  <span style="color:var(--muted)"># {"A": 3.0, "S": 4.0, "B": 2.5}</span></div>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer>
+  <div style="margin-bottom:0.5rem">
+    <strong>PromptWar</strong> — Multi-Agent RL Environment &nbsp;·&nbsp;
+    <a href="/docs">Swagger /docs</a> &nbsp;·&nbsp;
+    <a href="/api/info">/api/info</a> &nbsp;·&nbsp;
+    <a href="https://github.com/meta-pytorch/OpenEnv" target="_blank" rel="noopener">OpenEnv on GitHub</a>
+  </div>
+  <div>Meta OpenEnv Hackathon · India Finale · April 2026 · Theme #1: Multi-Agent Interactions</div>
+</footer>
+
+<script>
+  /* ── Utilities ── */
+  function ts() {
+    const d = new Date();
+    return [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2, '0')).join(':');
+  }
+
+  function log(msg, type = 'info') {
+    const el = document.getElementById('event-log');
+    const line = document.createElement('div');
+    line.className = 'log-line ' + type;
+    line.innerHTML = `<span class="ts">${ts()}</span><span class="msg">${msg}</span>`;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function setJson(obj) {
+    document.getElementById('json-out').textContent =
+      typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+  }
+
+  function setCmd(val) {
+    document.getElementById('cmd-input').value = val;
+  }
+
+  /* ── API helpers ── */
+  async function jget(path) {
+    const r = await fetch(path, { headers: { Accept: 'application/json' } });
+    if (!r.ok) throw new Error(path + ' ' + r.status);
+    return r.json();
+  }
+
+  async function jpost(path, body) {
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: body === undefined ? '{}' : JSON.stringify(body),
+    });
+    const text = await r.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { _raw: text }; }
+    if (!r.ok) {
       const d = data?.detail;
-      if (Array.isArray(d)) {
-        return d.map((x) => (x.msg || JSON.stringify(x)) + (x.loc ? " @ " + x.loc.join(".") : "")).join("; ");
-      }
-      if (d != null) return String(d) + (text ? " — " + text.slice(0, 300) : "");
-      return (data?.message || r.status) + (text ? " — " + text.slice(0, 300) : "");
+      const msg = Array.isArray(d)
+        ? d.map(x => (x.msg || JSON.stringify(x))).join('; ')
+        : (d ? String(d) : r.status);
+      throw new Error(msg);
     }
-    async function jpost(path, body) {
-      const r = await fetch(base + path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: body === undefined ? "{}" : JSON.stringify(body),
+    return data;
+  }
+
+  /* ── State rendering ── */
+  let _stage = 2;
+  let _maxRounds = 3;
+
+  function renderObs(data) {
+    const obs = data?.observation ?? data;
+    if (!obs) return;
+
+    // Shared prompt
+    const pd = document.getElementById('prompt-display');
+    if (obs.shared_prompt) {
+      pd.textContent = obs.shared_prompt;
+      pd.classList.remove('empty');
+      document.getElementById('diagram-prompt').textContent = obs.shared_prompt;
+    }
+
+    // Token count
+    const meta = obs.metadata || {};
+    if (meta.prompt_tokens !== undefined) {
+      document.getElementById('prompt-tokens').textContent = meta.prompt_tokens;
+    }
+
+    // Curriculum / rounds
+    _maxRounds = meta.max_rounds ?? _maxRounds;
+    const roundIdx = obs.round_idx ?? 0;
+    document.getElementById('round-label').textContent =
+      `${roundIdx + 1} / ${_maxRounds}`;
+    for (let i = 0; i < 3; i++) {
+      const pip = document.getElementById('rp-' + i);
+      if (!pip) continue;
+      pip.className = 'round-pip' +
+        (i < roundIdx ? ' done' : i === roundIdx ? ' active' : '');
+    }
+
+    // Active agent
+    const agent = obs.active_agent;
+    ['A', 'S', 'B'].forEach(a => {
+      const el = document.getElementById('ta-' + a);
+      el.className = 'turn-agent' + (a === agent ? ` active active-${a.toLowerCase()}` : '');
+    });
+
+    // Rewards
+    const lr = obs.last_rewards || {};
+    ['A', 'S', 'B'].forEach(a => {
+      const el = document.getElementById('reward-' + a);
+      el.textContent = lr[a] !== undefined ? lr[a].toFixed(2) : '—';
+    });
+
+    // Rejection
+    const rb = document.getElementById('rejection-badge');
+    if (obs.edit_rejected) {
+      rb.textContent = '✗ Rejected: ' + (obs.rejection_reason || 'unknown');
+      rb.classList.add('show');
+    } else {
+      rb.classList.remove('show');
+    }
+
+    setJson(data);
+  }
+
+  /* ── Status / refresh ── */
+  async function refreshStatus() {
+    // Health
+    const hp = document.getElementById('pill-health');
+    try {
+      await jget('/health');
+      hp.className = 'pill ok';
+      hp.innerHTML = '<span class="dot"></span>health: ok';
+      document.getElementById('health-dot').className = 'dot dot-green';
+    } catch {
+      hp.className = 'pill bad';
+      hp.innerHTML = '<span class="dot"></span>health: error';
+      document.getElementById('health-dot').className = 'dot dot-red';
+    }
+    // Consumer
+    const cp = document.getElementById('pill-consumer');
+    try {
+      const c = await jget('/consumer/status');
+      cp.className = 'pill ' + (c.available ? 'ok' : 'warn');
+      cp.innerHTML = `<span class="dot"></span>consumer: ${c.available ? 'loaded' : 'not loaded'}`;
+    } catch { cp.innerHTML = '<span class="dot"></span>consumer: ?'; }
+    // Curriculum
+    const sp = document.getElementById('pill-stage');
+    try {
+      const s = await jget('/curriculum_stage');
+      _stage = s.stage;
+      sp.innerHTML = `<span class="dot"></span>stage ${s.stage} — ${s.name}`;
+      updateStageBtns(s.stage);
+    } catch { sp.innerHTML = '<span class="dot"></span>curriculum: ?'; }
+  }
+
+  function updateStageBtns(stage) {
+    document.querySelectorAll('.stage-btn').forEach(b => {
+      b.classList.toggle('active', +b.dataset.s === stage);
+    });
+  }
+
+  /* ── Event handlers ── */
+  document.getElementById('btn-refresh').addEventListener('click', () => {
+    refreshStatus().catch(() => {});
+    log('Refreshed status');
+  });
+
+  document.querySelectorAll('.stage-btn').forEach(b => {
+    b.addEventListener('click', async () => {
+      const stage = +b.dataset.s;
+      try {
+        const r = await jpost('/curriculum_stage', { stage });
+        _stage = stage;
+        updateStageBtns(stage);
+        document.getElementById('pill-stage').innerHTML =
+          `<span class="dot"></span>stage ${r.stage} — ${r.name}`;
+        log(`Curriculum → stage ${stage} (${r.name})`);
+      } catch (e) { log('Stage error: ' + e.message, 'bad'); }
+    });
+  });
+
+  document.getElementById('btn-load-consumer').addEventListener('click', async () => {
+    log('Loading consumer model…', 'warn');
+    try {
+      const r = await jpost('/consumer/load', {});
+      log('Consumer: ' + (r.available ? 'loaded' : ('error — ' + r.load_error)), r.available ? 'ok' : 'bad');
+      await refreshStatus();
+    } catch (e) { log('Load error: ' + e.message, 'bad'); }
+  });
+
+  document.getElementById('btn-reset').addEventListener('click', async () => {
+    try {
+      const r = await jpost('/reset', {});
+      renderObs(r);
+      const pd = document.getElementById('prompt-display');
+      pd.classList.remove('empty');
+      document.getElementById('rejection-badge').classList.remove('show');
+      ['A', 'S', 'B'].forEach(a => {
+        document.getElementById('reward-' + a).textContent = '—';
       });
-      const text = await r.text();
-      let data;
-      try { data = text ? JSON.parse(text) : {}; } catch { data = { _raw: text }; }
-      if (!r.ok) throw new Error(formatServerError(r, data, text));
-      return data;
-    }
+      log('Episode reset · active agent: ' + (r.observation?.active_agent ?? r.active_agent ?? '?'), 'ok');
+    } catch (e) { log('Reset error: ' + e.message, 'bad'); }
+  });
 
-    function show(obj) { out.textContent = JSON.stringify(obj, null, 2); }
-
-    function healthLabel(h) {
-      if (h == null) return "ok";
-      if (typeof h.status === "string") return h.status;
-      if (typeof h.state === "string") return h.state;
-      return JSON.stringify(h);
-    }
-
-    async function refreshStatus() {
-      try {
-        const h = await jget("/health");
-        $("hpill").textContent = "/health: " + healthLabel(h);
-        $("hpill").className = "pill ok";
-      } catch (e) {
-        $("hpill").textContent = "/health: error";
-        $("hpill").className = "pill bad";
+  document.getElementById('btn-step').addEventListener('click', async () => {
+    const command = document.getElementById('cmd-input').value.trim() || 'PASS';
+    try {
+      const r = await jpost('/step', { action: { command } });
+      renderObs(r);
+      const obs = r?.observation ?? r;
+      const rejected = obs?.edit_rejected;
+      if (rejected) {
+        log(`Step: "${command}" → REJECTED (${obs.rejection_reason})`, 'warn');
+      } else {
+        log(`Step: "${command}" → ok · next: ${obs?.active_agent ?? '?'}`, 'ok');
       }
-      try {
-        const c = await jget("/consumer/status");
-        $("cpill").textContent = "consumer: " + (c.available ? "loaded" : "not loaded");
-        $("cpill").className = "pill " + (c.available ? "ok" : "");
-      } catch (e) {
-        $("cpill").textContent = "consumer: ?";
-      }
-      try {
-        const s = await jget("/curriculum_stage");
-        $("stpill").textContent = "curriculum: stage " + s.stage + " — " + s.name;
-      } catch (e) {
-        $("stpill").textContent = "curriculum: ?";
-      }
-    }
+      if (obs?.done) log('Episode done. Click Reset to start a new episode.', 'info');
+    } catch (e) { log('Step error: ' + e.message, 'bad'); }
+  });
 
-    document.getElementById("btnRefresh").addEventListener("click", () => { refreshStatus().catch(() => {}); });
-    document.querySelectorAll("button.st").forEach((b) => {
-      b.addEventListener("click", async () => {
-        const stage = +b.getAttribute("data-s");
-        try {
-          const r = await jpost("/curriculum_stage", { stage });
-          show(r);
-          await refreshStatus();
-        } catch (e) { out.textContent = String(e); }
-      });
-    });
-    document.getElementById("btnLoad").addEventListener("click", async () => {
-      try {
-        out.textContent = "Loading consumer…";
-        const r = await jpost("/consumer/load", {});
-        show(r);
-        await refreshStatus();
-      } catch (e) { out.textContent = String(e); }
-    });
-    document.getElementById("btnReset").addEventListener("click", async () => {
-      try {
-        const r = await jpost("/reset", {});
-        show(r);
-      } catch (e) { out.textContent = String(e); }
-    });
-    document.getElementById("btnStep").addEventListener("click", async () => {
-      const command = document.getElementById("cmd").value.trim() || "PASS";
-      try {
-        const r = await jpost("/step", { action: { command } });
-        show(r);
-      } catch (e) { out.textContent = String(e); }
-    });
+  document.getElementById('cmd-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('btn-step').click();
+  });
 
-    refreshStatus().catch(() => {
-      $("hpill").textContent = "/health: (offline?)";
-    });
-  </script>
+  /* ── Init ── */
+  refreshStatus().catch(() => {
+    log('Server offline or starting up…', 'warn');
+  });
+</script>
 </body>
 </html>
