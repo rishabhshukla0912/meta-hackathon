@@ -157,7 +157,7 @@ def run_episode(
                     continue
                 base = float(next_obs.last_rewards.get(r, 0.0))
                 # Penalize PASS — gives GRPO a gradient even when rubric reward is 0
-                pass_penalty = -0.3 if ts[-1].completion.strip().upper() == "PASS" else 0.0
+                pass_penalty = -0.1 if ts[-1].completion.strip().upper() == "PASS" else 0.0
                 ts[-1].reward = base + pass_penalty
             last_seen_round_idx = next_obs.round_idx
 

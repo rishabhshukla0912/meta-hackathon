@@ -11,7 +11,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-from ..grammar import NEUTRAL_STARTER_PROMPT  # noqa: F401 — re-export
+try:
+    from ..grammar import NEUTRAL_STARTER_PROMPT  # noqa: F401 — re-export
+except ImportError:  # flat-package fallback
+    from grammar import NEUTRAL_STARTER_PROMPT  # type: ignore[no-redef]  # noqa: F401
 
 
 @dataclass
