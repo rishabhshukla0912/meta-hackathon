@@ -26,6 +26,22 @@ objective.
 > Submission for the **Meta OpenEnv Hackathon — India Finale, April 25–26 2026**
 > (theme #1: Multi-Agent Interactions). Build target: §4 of the v3 build guide.
 
+## Run in Colab (judges)
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rishabhshukla0912/meta-hackathon/blob/main/PromptWar_Colab.ipynb)
+
+1. Click the badge above.
+2. **Runtime → Change runtime type → GPU** (T4 is sufficient).
+3. **Runtime → Run All.**
+
+The notebook is self-contained: it clones this repo, installs deps, starts the
+env server on `127.0.0.1:8000` inside the Colab VM, and runs a live training
+episode end-to-end.
+
+A hosted instance of the env is also live at
+<https://jshug-meta-hackathon-new.hf.space> for clients that want to hit the
+env over HTTP without spinning one up.
+
 ## Why this is novel
 
 As of April 2026, no public RL environment treats a natural-language artifact
