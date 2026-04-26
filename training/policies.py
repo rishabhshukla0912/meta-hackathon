@@ -146,7 +146,7 @@ def hf_lora_policy(
     peft_model: Any,
     tokenizer: Any,
     *,
-    max_new_tokens: int = 96,
+    max_new_tokens: int = 32,
     temperature: float = 0.7,
     top_p: float = 0.95,
     do_sample: bool = True,

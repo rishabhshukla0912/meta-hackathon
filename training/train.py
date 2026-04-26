@@ -255,18 +255,32 @@ def run_long(
         for step_idx in range(steps):
             episode = run_episode(env, policy)
             metrics = flush_episode(peft_model, trainers, episode)
-            metrics_log.append({"step": step_idx, "metrics": metrics})
+            metrics_log.append({
+                "step": step_idx,
+                "rewards": {r: round(float(v), 4) for r, v in episode.per_role_reward.items()},
+                "rewards_by_round": episode.rewards_by_round,
+                "metrics": metrics,
+            })
+            logger.info(
+                "step %d/%d | rewards=%s | grpo=%s",
+                step_idx + 1,
+                steps,
+                {r: round(v, 3) for r, v in episode.per_role_reward.items()},
+                [{m.get("role"): round(float(m.get("metrics", {}).get("loss", 0) or 0), 4)} for m in metrics],
+            )
 
-            # Flush after every step so a crash mid-run still leaves something
-            # plottable on disk, and so the plot cell can be run before the
-            # full training completes.
+            # Write after every step — crash-safe and plottable mid-run.
             metrics_log_path.write_text(json.dumps(metrics_log, indent=2, default=float))
 
             if (step_idx + 1) % checkpoint_every == 0:
                 ckpt_path = Path(output_dir) / f"step_{step_idx + 1}"
                 ckpt_path.mkdir(parents=True, exist_ok=True)
-                peft_model.save_pretrained(ckpt_path)
-                logger.info("checkpointed to %s", ckpt_path)
+                # Save each role's LoRA adapter separately
+                from .lora_setup import ROLES, activate_adapter
+                for role in ROLES:
+                    activate_adapter(peft_model, role)
+                    peft_model.save_pretrained(ckpt_path / f"adapter_{role}")
+                logger.info("checkpointed step %d to %s (adapters: %s)", step_idx + 1, ckpt_path, list(ROLES))
 
     return {
         "mode": "long",

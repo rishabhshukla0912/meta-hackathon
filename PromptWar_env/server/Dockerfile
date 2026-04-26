@@ -45,16 +45,16 @@ RUN if ! command -v uv >/dev/null 2>&1; then \
 # If uv.lock exists, use it; otherwise resolve on the fly
 RUN --mount=type=cache,target=/root/.cache/uv \
     if [ -f uv.lock ]; then \
-        uv sync --frozen --no-install-project --no-editable; \
+        uv sync --frozen --extra consumer --no-install-project --no-editable; \
     else \
-        uv sync --no-install-project --no-editable; \
+        uv sync --extra consumer --no-install-project --no-editable; \
     fi
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     if [ -f uv.lock ]; then \
-        uv sync --frozen --no-editable; \
+        uv sync --frozen --extra consumer --no-editable; \
     else \
-        uv sync --no-editable; \
+        uv sync --extra consumer --no-editable; \
     fi
 
 # Final runtime stage
