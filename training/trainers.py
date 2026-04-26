@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .lora_setup import ROLES, activate_adapter
 from .role_router import EpisodeResult, Transition
@@ -36,11 +36,17 @@ class GRPOHyperparams:
     beta: float = 0.004
     num_generations: int = 4
     learning_rate: float = 5e-6
-    per_device_train_batch_size: int = 1
-    gradient_accumulation_steps: int = 4
+    per_device_train_batch_size: int = 4
+    gradient_accumulation_steps: int = 1
     max_prompt_length: int = 1024
     max_completion_length: int = 96
     output_dir: str = "./checkpoints/promptwar"
+    bf16: bool = False
+    fp16: bool = False
+    gradient_checkpointing: bool = False
+    # Forward/backward chunk size used by the custom :func:`_grpo_step` path
+    # to bound peak VRAM when the pending-transition batch grows.
+    micro_batch_size: int = 4
 
 
 @dataclass
@@ -50,6 +56,7 @@ class RoleGRPOTrainer:
     role: str
     trainer: Any
     pending_transitions: List[Transition] = field(default_factory=list)
+    micro_batch_size: int = 4
 
     def submit(self, transition: Transition) -> None:
         if transition.role != self.role:
@@ -84,7 +91,13 @@ class RoleGRPOTrainer:
             )
             result = {"metrics": metrics}
         else:
-            metrics = _grpo_step(self.trainer, prompts, completions, rewards)
+            metrics = _grpo_step(
+                self.trainer,
+                prompts,
+                completions,
+                rewards,
+                micro_batch_size=self.micro_batch_size,
+            )
             result = {"metrics": metrics}
 
         result["role"] = self.role
@@ -118,6 +131,9 @@ def build_three_trainers(
         "max_prompt_length": hp.max_prompt_length,
         "max_completion_length": hp.max_completion_length,
         "output_dir": hp.output_dir,
+        "bf16": hp.bf16,
+        "fp16": hp.fp16,
+        "gradient_checkpointing": hp.gradient_checkpointing,
     }
     grpo_kwargs = {k: v for k, v in candidate_kwargs.items() if k in accepted}
     dropped = sorted(set(candidate_kwargs) - set(grpo_kwargs))
@@ -142,7 +158,9 @@ def build_three_trainers(
             reward_funcs=[lambda *args, **kwargs: 0.0],
             train_dataset=placeholder_dataset,
         )
-        trainers[role] = RoleGRPOTrainer(role=role, trainer=trainer)
+        trainers[role] = RoleGRPOTrainer(
+            role=role, trainer=trainer, micro_batch_size=hp.micro_batch_size
+        )
     return trainers
 
 
@@ -173,6 +191,8 @@ def _grpo_step(
     prompts: List[str],
     completions: List[str],
     rewards: List[float],
+    *,
+    micro_batch_size: int = 4,
 ) -> Dict[str, Any]:
     """One GRPO-style policy-gradient step.
 
@@ -187,6 +207,10 @@ def _grpo_step(
     by entering ``model.disable_adapter()`` on the PeftModel. This gives
     us a frozen reference for the KL penalty without holding a second
     copy of the weights.
+
+    Forward/backward is chunked into ``micro_batch_size`` groups so peak
+    activation memory stays bounded as the pending-transition batch grows.
+    Gradients accumulate across chunks; one optimizer step runs at the end.
     """
     import torch  # type: ignore
     import torch.nn.functional as F  # type: ignore
@@ -198,31 +222,49 @@ def _grpo_step(
 
     beta = float(getattr(getattr(trainer, "args", None), "beta", 0.004))
 
-    # Tokenize prompts and (prompt+completion) separately so we can mask
-    # out prompt + padding tokens from the policy-gradient loss.
-    prompt_enc = tokenizer(prompts, return_tensors="pt", padding=True, truncation=True)
-    full_texts = [f"{p}{c}" for p, c in zip(prompts, completions)]
-    full_enc = tokenizer(full_texts, return_tensors="pt", padding=True, truncation=True)
-
-    input_ids = full_enc["input_ids"].to(device)
-    attention_mask = full_enc["attention_mask"].to(device)
-    prompt_lens = prompt_enc["attention_mask"].sum(dim=1).tolist()
-
-    completion_mask = attention_mask.clone()
-    for i, plen in enumerate(prompt_lens):
-        completion_mask[i, : min(plen, completion_mask.size(1))] = 0
-
     rewards_t = torch.tensor(rewards, dtype=torch.float32, device=device)
     if rewards_t.numel() > 1 and float(rewards_t.std()) > 1e-8:
         advantages = (rewards_t - rewards_t.mean()) / (rewards_t.std() + 1e-8)
     else:
-        # Single sample or zero variance: zero-centered advantage. Gradient
-        # contribution from this batch will be small but the KL term still
-        # keeps the policy anchored to the reference.
         advantages = rewards_t - rewards_t.mean()
 
-    # Policy forward (LoRA active).
-    with torch.enable_grad():
+    n = len(prompts)
+    chunk = max(1, int(micro_batch_size))
+    disable_ctx = getattr(model, "disable_adapter", None)
+
+    # Tokenize once across the full batch so padding is consistent and the
+    # global completion-token count (used to normalize the KL term) is
+    # known up front. We then slice into micro-batches for forward/backward.
+    prompt_enc = tokenizer(prompts, return_tensors="pt", padding=True, truncation=True)
+    full_texts = [f"{p}{c}" for p, c in zip(prompts, completions)]
+    full_enc = tokenizer(full_texts, return_tensors="pt", padding=True, truncation=True)
+
+    full_input_ids = full_enc["input_ids"].to(device)
+    full_attention_mask = full_enc["attention_mask"].to(device)
+    prompt_lens = prompt_enc["attention_mask"].sum(dim=1).tolist()
+
+    full_completion_mask = full_attention_mask.clone()
+    for i, plen in enumerate(prompt_lens):
+        full_completion_mask[i, : min(plen, full_completion_mask.size(1))] = 0
+
+    total_completion_tokens = float(full_completion_mask[:, 1:].sum().item())
+    total_tokens_clamped = max(total_completion_tokens, 1.0)
+
+    if trainer.optimizer is None:
+        trainer.create_optimizer()
+    trainer.optimizer.zero_grad()
+
+    pg_loss_sum = torch.tensor(0.0, device=device)
+    kl_token_sum = torch.tensor(0.0, device=device)
+    have_ref = False
+
+    for start in range(0, n, chunk):
+        end = min(start + chunk, n)
+        input_ids = full_input_ids[start:end]
+        attention_mask = full_attention_mask[start:end]
+        completion_mask = full_completion_mask[start:end]
+        sub_adv = advantages[start:end].detach()
+
         outputs = model(input_ids=input_ids, attention_mask=attention_mask)
         logits = outputs.logits[:, :-1, :]
         targets = input_ids[:, 1:]
@@ -232,38 +274,47 @@ def _grpo_step(
         token_logp = log_probs.gather(2, targets.unsqueeze(-1)).squeeze(-1)
         per_sample_logp = (token_logp * target_mask).sum(dim=1)
 
-    # Reference forward (LoRA disabled → base model). Gradients off.
-    ref_token_logp: Optional["torch.Tensor"] = None
-    kl_total = torch.tensor(0.0, device=device)
-    disable_ctx = getattr(model, "disable_adapter", None)
-    if disable_ctx is not None:
-        with torch.no_grad():
-            with disable_ctx():
-                ref_outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-        ref_logits = ref_outputs.logits[:, :-1, :]
-        ref_log_probs = F.log_softmax(ref_logits, dim=-1)
-        ref_token_logp = ref_log_probs.gather(2, targets.unsqueeze(-1)).squeeze(-1)
-        kl_per_token = (token_logp - ref_token_logp) * target_mask
-        kl_total = kl_per_token.sum() / target_mask.sum().clamp(min=1.0)
+        chunk_pg = -(sub_adv * per_sample_logp).sum() / float(n)
+        chunk_loss = chunk_pg
 
-    pg_loss = -(advantages.detach() * per_sample_logp).mean()
-    loss = pg_loss + beta * kl_total
+        chunk_kl_token_sum = torch.tensor(0.0, device=device)
+        if disable_ctx is not None:
+            with torch.no_grad():
+                with disable_ctx():
+                    ref_outputs = model(
+                        input_ids=input_ids, attention_mask=attention_mask
+                    )
+            ref_logits = ref_outputs.logits[:, :-1, :]
+            ref_log_probs = F.log_softmax(ref_logits, dim=-1)
+            ref_token_logp = ref_log_probs.gather(2, targets.unsqueeze(-1)).squeeze(-1)
+            kl_per_token = (token_logp - ref_token_logp) * target_mask
+            chunk_kl_token_sum = kl_per_token.sum()
+            chunk_loss = chunk_loss + beta * chunk_kl_token_sum / total_tokens_clamped
+            have_ref = True
 
-    loss.backward()
-    if trainer.optimizer is None:
-        trainer.create_optimizer()
+        chunk_loss.backward()
+
+        pg_loss_sum = pg_loss_sum + chunk_pg.detach() * float(n)
+        kl_token_sum = kl_token_sum + chunk_kl_token_sum.detach()
+
     trainer.optimizer.step()
     trainer.optimizer.zero_grad()
 
+    pg_loss_mean = (pg_loss_sum / max(float(n), 1.0)).detach()
+    kl_mean = (
+        (kl_token_sum / total_tokens_clamped).detach() if have_ref else None
+    )
+    total_loss = pg_loss_mean + (beta * kl_mean if kl_mean is not None else 0.0)
+
     return {
-        "loss": float(loss.detach()),
-        "pg_loss": float(pg_loss.detach()),
-        "kl": float(kl_total.detach()) if ref_token_logp is not None else None,
+        "loss": float(total_loss),
+        "pg_loss": float(pg_loss_mean),
+        "kl": float(kl_mean) if kl_mean is not None else None,
         "beta": beta,
         "mean_reward": float(rewards_t.mean().detach()),
         "reward_std": float(rewards_t.std().detach()) if rewards_t.numel() > 1 else 0.0,
         "mean_advantage": float(advantages.mean().detach()),
-        "n_completion_tokens": int(target_mask.sum().detach()),
+        "n_completion_tokens": int(total_completion_tokens),
     }
 
 

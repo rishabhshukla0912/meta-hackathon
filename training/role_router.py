@@ -25,7 +25,7 @@ torch/trl imports — unit tests can exercise the routing logic directly.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Protocol
+from typing import Callable, Dict, List, Optional, Protocol, Tuple
 
 from PromptWar_env.agents.role_prompts import ROLE_PROMPTS, build_observation_prompt
 from PromptWar_env.models import PromptWarAction, PromptWarObservation
@@ -37,6 +37,14 @@ SamplePolicy = Callable[[str, str, str], str]
 The routed system prompt + per-turn observation are passed in. The policy
 is responsible for activating the correct LoRA adapter, calling the model,
 and returning a single completion string (the raw edit command).
+"""
+
+
+BatchedSamplePolicy = Callable[[List[Tuple[str, str, str]]], List[str]]
+"""Signature: ``policy([(role, system_prompt, user_message), ...]) -> [completion, ...]``.
+
+Used by :func:`run_episodes_parallel` to amortize ``model.generate`` cost
+across K concurrently running episodes.
 """
 
 
@@ -170,4 +178,113 @@ def run_episode(
     return result
 
 
-__all__ = ["EnvLike", "EpisodeResult", "SamplePolicy", "Transition", "run_episode"]
+def run_episodes_parallel(
+    envs: List[EnvLike],
+    batched_policy: BatchedSamplePolicy,
+    *,
+    max_turns: Optional[int] = None,
+) -> List[EpisodeResult]:
+    """Drive K envs concurrently, batching the policy call once per tick.
+
+    Each tick:
+      1. Collect the active (role, system_prompt, user_message) triple from
+         every still-running env into one list.
+      2. Hand the whole list to ``batched_policy`` — typically one
+         ``model.generate`` call per role group (see
+         :func:`policies.hf_lora_policy_batched`).
+      3. Step each env with its returned completion.
+
+    The wall-clock win comes from amortizing the generate-launch overhead
+    and packing more tokens into each forward, which scales much better
+    than K serial calls. Episodes can finish at different ticks; finished
+    envs simply drop out of the per-tick batch.
+    """
+    results: List[EpisodeResult] = [EpisodeResult() for _ in envs]
+    obs_list: List[PromptWarObservation] = [
+        _unwrap_observation(env.reset()) for env in envs
+    ]
+    last_round_idx: List[int] = [obs.round_idx for obs in obs_list]
+    for r, obs in zip(results, obs_list):
+        r.final_observation = obs
+    step_idx = 0
+
+    def is_active(i: int) -> bool:
+        return not obs_list[i].done and (max_turns is None or step_idx < max_turns)
+
+    while any(is_active(i) for i in range(len(envs))):
+        active_indices = [i for i in range(len(envs)) if is_active(i)]
+        batch: List[Tuple[str, str, str]] = []
+        per_turn_meta: List[Tuple[str, str]] = []  # (role, user_message) per active env
+        for i in active_indices:
+            obs = obs_list[i]
+            role = obs.active_agent
+            system_prompt = ROLE_PROMPTS[role]
+            user_message = build_observation_prompt(
+                role=role,
+                shared_prompt=obs.shared_prompt,
+                round_idx=obs.round_idx,
+                turn_idx=obs.turn_idx,
+                last_edit_rejected=obs.edit_rejected,
+                last_rejection_reason=obs.rejection_reason,
+            )
+            batch.append((role, system_prompt, user_message))
+            per_turn_meta.append((role, user_message))
+
+        completions = batched_policy(batch)
+        if len(completions) != len(active_indices):
+            raise ValueError(
+                f"batched_policy returned {len(completions)} completions for "
+                f"{len(active_indices)} active envs"
+            )
+
+        for slot, i in enumerate(active_indices):
+            role, user_message = per_turn_meta[slot]
+            completion = completions[slot]
+            obs = obs_list[i]
+            next_obs = _unwrap_observation(envs[i].step(PromptWarAction(command=completion)))
+
+            results[i].transitions_by_role[role].append(
+                Transition(
+                    role=role,
+                    round_idx=obs.round_idx,
+                    turn_idx=obs.turn_idx,
+                    prompt=user_message,
+                    completion=completion,
+                    reward=0.0,
+                    edit_rejected=next_obs.edit_rejected,
+                    rejection_reason=next_obs.rejection_reason,
+                )
+            )
+
+            round_just_closed = (
+                next_obs.round_idx > last_round_idx[i] or next_obs.done
+            )
+            if round_just_closed and next_obs.last_rewards:
+                for r, ts in results[i].transitions_by_role.items():
+                    if not ts:
+                        continue
+                    ts[-1].reward = float(next_obs.last_rewards.get(r, 0.0))
+                last_round_idx[i] = next_obs.round_idx
+
+            obs_list[i] = next_obs
+            results[i].final_observation = next_obs
+
+        step_idx += 1
+
+    for i, obs in enumerate(obs_list):
+        if obs.metadata:
+            results[i].rewards_by_round = list(obs.metadata.get("rewards_by_round", []))
+            results[i].edit_history = list(obs.metadata.get("edit_history", []))
+
+    return results
+
+
+__all__ = [
+    "BatchedSamplePolicy",
+    "EnvLike",
+    "EpisodeResult",
+    "SamplePolicy",
+    "Transition",
+    "run_episode",
+    "run_episodes_parallel",
+]

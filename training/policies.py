@@ -190,4 +190,93 @@ def hf_lora_policy(
     return policy
 
 
-__all__ = ["hf_lora_policy", "random_policy", "scripted_policy"]
+def hf_lora_policy_batched(
+    peft_model: Any,
+    tokenizer: Any,
+    *,
+    max_new_tokens: int = 96,
+    temperature: float = 0.7,
+    top_p: float = 0.95,
+    do_sample: bool = True,
+) -> Callable[[List[tuple]], List[str]]:
+    """Construct a *batched* policy.
+
+    Signature: ``policy([(role, system_prompt, user_message), ...]) -> [completion, ...]``.
+
+    Requests are grouped by role so the global LoRA adapter is swapped at
+    most once per role, then a single padded ``model.generate`` call covers
+    all same-role items in one GPU pass. With K parallel envs this turns K
+    sequential generates into 1-3 (one per role present at the current tick).
+    """
+    import torch  # type: ignore
+
+    from .lora_setup import activate_adapter
+
+    def policy(items: List[tuple]) -> List[str]:
+        results: List[Optional[str]] = [None] * len(items)
+        device = next(peft_model.parameters()).device
+        pad_id = tokenizer.pad_token_id or tokenizer.eos_token_id
+
+        # Group indices by role so we swap adapters at most once per role.
+        groups: Dict[str, List[int]] = {}
+        for idx, (role, _sys, _usr) in enumerate(items):
+            groups.setdefault(role, []).append(idx)
+
+        for role, idxs in groups.items():
+            activate_adapter(peft_model, role)
+
+            chat_texts: List[str] = []
+            for i in idxs:
+                _, sys_p, usr_p = items[i]
+                messages = [
+                    {"role": "system", "content": sys_p},
+                    {"role": "user", "content": usr_p},
+                ]
+                try:
+                    chat_text = tokenizer.apply_chat_template(
+                        messages, tokenize=False, add_generation_prompt=True
+                    )
+                except Exception:
+                    chat_text = f"{sys_p}\n\n{usr_p}\n"
+                chat_texts.append(chat_text)
+
+            # Left-pad so completions start at the same position for every
+            # row, which keeps the slice ``outputs[:, prompt_len:]`` correct
+            # across the batch.
+            prev_side = getattr(tokenizer, "padding_side", "right")
+            tokenizer.padding_side = "left"
+            try:
+                inputs = tokenizer(
+                    chat_texts, return_tensors="pt", padding=True, truncation=True
+                )
+            finally:
+                tokenizer.padding_side = prev_side
+            inputs = {k: v.to(device) for k, v in inputs.items()}
+            prompt_len = inputs["input_ids"].shape[-1]
+
+            with torch.no_grad():
+                outputs = peft_model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=do_sample,
+                    temperature=temperature,
+                    top_p=top_p,
+                    pad_token_id=pad_id,
+                )
+
+            new_tokens = outputs[:, prompt_len:]
+            for row_pos, i in enumerate(idxs):
+                text = tokenizer.decode(new_tokens[row_pos], skip_special_tokens=True).strip()
+                results[i] = text.splitlines()[0].strip() if text else "PASS"
+
+        return [r if r is not None else "PASS" for r in results]
+
+    return policy
+
+
+__all__ = [
+    "hf_lora_policy",
+    "hf_lora_policy_batched",
+    "random_policy",
+    "scripted_policy",
+]
