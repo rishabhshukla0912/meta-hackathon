@@ -177,6 +177,7 @@ def hf_lora_policy(
             outputs = peft_model.generate(
                 **inputs,
                 max_new_tokens=max_new_tokens,
+                min_new_tokens=8,
                 do_sample=do_sample,
                 temperature=temperature,
                 top_p=top_p,

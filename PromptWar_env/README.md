@@ -98,6 +98,23 @@ with PromptWarEnv(base_url="http://localhost:8000") as env:
     print(result.observation.last_rewards)   # {"A": ..., "S": ..., "B": ...}
 ```
 
+## Web playground (Hugging Face Space)
+
+When the server is up, open **`/`** in a browser. You get a small **demo UI** (curriculum, load consumer, reset, step) that talks to the same HTTP API as the trainer. `curl` and JSON clients that send `Accept: application/json` (without `text/html`) still hit the normal **`GET /`** behavior from OpenEnv.
+
+- **`/api/info`** — JSON with links (`docs`, `playground`).
+
+## Publishing to Hugging Face (Docker Space)
+
+1. **Create a Space** at [huggingface.co/new-space](https://huggingface.co/new-space): SDK **Docker**, hardware **GPU** if you want the consumer model to load (CPU Spaces work for mock rubrics only unless you add a small CPU model off-repo).
+2. **Push** this `PromptWar_env` folder (or your repo with `README.md` + `Dockerfile` at the Space root — many teams duplicate the env folder as the Space repo root). The included **`PromptWar_env/Dockerfile`** runs `uvicorn server.app:app` on **port 8000**.
+3. **Space settings**: set the container’s expected port to **8000** (matches `app_port` in the YAML frontmatter on this file).
+4. **Optional env vars** (in the Space “Variables and secrets”):
+   - `PROMPTWAR_LOAD_CONSUMER_MODEL=1` — load Qwen2.5-0.5B at startup (needs GPU + memory); omit or `0` for fast cold start with mock rubrics.
+5. **README link**: in your competition README, add the public Space URL `https://huggingface.co/spaces/<user>/<name>` so judges can open the playground and `/docs`.
+
+For OpenEnv’s **standard** `openenv build` / monorepo layout, keep **`server/Dockerfile`** and `openenv.yaml` in sync; the **root `Dockerfile`** here is a minimal standalone image for a Hugging Face **transformers** base.
+
 ## Running locally
 
 ```bash

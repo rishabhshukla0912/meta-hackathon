@@ -151,12 +151,14 @@ def run_episode(
             next_obs.round_idx > last_seen_round_idx or next_obs.done
         )
         if round_just_closed and next_obs.last_rewards:
+            result.rewards_by_round.append(dict(next_obs.last_rewards))
             for r, ts in result.transitions_by_role.items():
                 if not ts:
                     continue
-                # Each role acts at most once per round; the most recent
-                # transition belongs to the round that just closed.
-                ts[-1].reward = float(next_obs.last_rewards.get(r, 0.0))
+                base = float(next_obs.last_rewards.get(r, 0.0))
+                # Penalize PASS — gives GRPO a gradient even when rubric reward is 0
+                pass_penalty = -0.3 if ts[-1].completion.strip().upper() == "PASS" else 0.0
+                ts[-1].reward = base + pass_penalty
             last_seen_round_idx = next_obs.round_idx
 
         obs = next_obs

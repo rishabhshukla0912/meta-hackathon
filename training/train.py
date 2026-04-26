@@ -34,6 +34,10 @@ Examples
     python -m training.train --mode long \\
         --env-url http://localhost:8000 \\
         --steps 1500 --use-unsloth --load-in-4bit
+
+    # Same training loop on Hugging Face Jobs (managed GPU; requires HF Pro+):
+    #   python -m training.launch_hf_job --repo-git https://github.com/ORG/REPO.git --env-url https://...
+    #   ./scripts/launch_promptwar_hf_job.sh   # with PROMPTWAR_REPO_GIT and PROMPTWAR_ENV_URL set
 """
 
 from __future__ import annotations

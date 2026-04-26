@@ -33,13 +33,14 @@ logger = logging.getLogger(__name__)
 class GRPOHyperparams:
     """§5 Hour 10-12 starting points — `beta=0.004`, `num_generations=4`, `lr=5e-6`."""
 
-    beta: float = 0.004
-    num_generations: int = 4
-    learning_rate: float = 5e-6
-    per_device_train_batch_size: int = 1
-    gradient_accumulation_steps: int = 4
+    beta: float = 0.04
+    num_generations: int = 2
+    learning_rate: float = 2e-6
+    per_device_train_batch_size: int = 2
+    gradient_accumulation_steps: int = 1
     max_prompt_length: int = 1024
-    max_completion_length: int = 96
+    max_completion_length: int = 64
+    max_grad_norm: float = 1.0
     output_dir: str = "./checkpoints/promptwar"
 
 
@@ -117,6 +118,8 @@ def build_three_trainers(
         "gradient_accumulation_steps": hp.gradient_accumulation_steps,
         "max_prompt_length": hp.max_prompt_length,
         "max_completion_length": hp.max_completion_length,
+        "max_grad_norm": hp.max_grad_norm,
+        "loss_type": "dr_grpo",
         "output_dir": hp.output_dir,
     }
     grpo_kwargs = {k: v for k, v in candidate_kwargs.items() if k in accepted}

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PromptWar — OpenEnv playground</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2129;
+      --border: #2d3843;
+      --text: #e7ecf1;
+      --muted: #8b9aad;
+      --accent: #3d8fd1;
+      --accent2: #6ecf9b;
+      --danger: #e85d6f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 1.25rem 1.5rem 2.5rem; }
+    h1 { font-size: 1.35rem; font-weight: 600; margin: 0 0 0.25rem; }
+    .lede { color: var(--muted); font-size: 0.95rem; margin: 0 0 1.5rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
+    }
+    h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.65rem; }
+    button, .btn {
+      background: var(--border);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.4rem 0.75rem;
+      font: inherit;
+      cursor: pointer;
+    }
+    button:hover, .btn:hover { background: #354252; }
+    button.primary { background: var(--accent); border-color: #2a6ca3; }
+    button.primary:hover { background: #4a9de0; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    input[type="text"] {
+      flex: 1;
+      min-width: 12rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 0.5rem 0.65rem;
+      font: inherit;
+    }
+    .pill { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: #243040; }
+    .ok { color: var(--accent2); }
+    .bad { color: var(--danger); }
+    pre {
+      background: #080b0e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin: 0;
+      font-size: 0.8rem;
+      overflow: auto;
+      max-height: 22rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    a { color: var(--accent); }
+    .footer { margin-top: 1.25rem; font-size: 0.8rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>PromptWar</h1>
+    <p class="lede">Multi-agent shared system prompt. Reset, send one edit per step (<code>APPEND</code>, <code>DELETE</code>, <code>REPLACE</code>, or <code>PASS</code>).</p>
+
+    <div class="panel">
+      <h2>Status</h2>
+      <div class="row">
+        <span class="pill" id="hpill">/health: …</span>
+        <span class="pill" id="cpill">consumer: …</span>
+        <span class="pill" id="stpill">curriculum: …</span>
+        <button type="button" id="btnRefresh">Refresh</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Curriculum &amp; model</h2>
+      <div class="row" style="margin-bottom:0.5rem">
+        <span style="color:var(--muted);font-size:0.9rem">Stage</span>
+        <button type="button" class="st" data-s="1">1 warm-up</button>
+        <button type="button" class="st" data-s="2">2 standard</button>
+        <button type="button" class="st" data-s="3">3 strict</button>
+        <button type="button" id="btnLoad">Load consumer (GPU / slow)</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Step</h2>
+      <div class="row" style="margin-bottom:0.5rem">
+        <button type="button" class="primary" id="btnReset">Reset</button>
+        <input type="text" id="cmd" placeholder='APPEND: Be concise.  or  PASS' value="APPEND: Be concise." />
+        <button type="button" class="primary" id="btnStep">Step</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Last response (JSON)</h2>
+      <pre id="out">(no request yet)</pre>
+    </div>
+
+    <p class="footer">API: <a href="/docs">/docs</a> · <a href="/api/info">/api/info</a></p>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const out = $("out");
+    const base = "";
+
+    async function jget(path) {
+      const r = await fetch(base + path, { headers: { Accept: "application/json" } });
+      if (!r.ok) throw new Error(path + " " + r.status);
+      return r.json();
+    }
+    function formatServerError(r, data, text) {
+      if (r.status === 404 && data?.detail === "Not Found") {
+        return "HTTP 404 — path not found (this server may hide /docs in production; try /api/info).";
+      }
+      const d = data?.detail;
+      if (Array.isArray(d)) {
+        return d.map((x) => (x.msg || JSON.stringify(x)) + (x.loc ? " @ " + x.loc.join(".") : "")).join("; ");
+      }
+      if (d != null) return String(d) + (text ? " — " + text.slice(0, 300) : "");
+      return (data?.message || r.status) + (text ? " — " + text.slice(0, 300) : "");
+    }
+    async function jpost(path, body) {
+      const r = await fetch(base + path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: body === undefined ? "{}" : JSON.stringify(body),
+      });
+      const text = await r.text();
+      let data;
+      try { data = text ? JSON.parse(text) : {}; } catch { data = { _raw: text }; }
+      if (!r.ok) throw new Error(formatServerError(r, data, text));
+      return data;
+    }
+
+    function show(obj) { out.textContent = JSON.stringify(obj, null, 2); }
+
+    function healthLabel(h) {
+      if (h == null) return "ok";
+      if (typeof h.status === "string") return h.status;
+      if (typeof h.state === "string") return h.state;
+      return JSON.stringify(h);
+    }
+
+    async function refreshStatus() {
+      try {
+        const h = await jget("/health");
+        $("hpill").textContent = "/health: " + healthLabel(h);
+        $("hpill").className = "pill ok";
+      } catch (e) {
+        $("hpill").textContent = "/health: error";
+        $("hpill").className = "pill bad";
+      }
+      try {
+        const c = await jget("/consumer/status");
+        $("cpill").textContent = "consumer: " + (c.available ? "loaded" : "not loaded");
+        $("cpill").className = "pill " + (c.available ? "ok" : "");
+      } catch (e) {
+        $("cpill").textContent = "consumer: ?";
+      }
+      try {
+        const s = await jget("/curriculum_stage");
+        $("stpill").textContent = "curriculum: stage " + s.stage + " — " + s.name;
+      } catch (e) {
+        $("stpill").textContent = "curriculum: ?";
+      }
+    }
+
+    document.getElementById("btnRefresh").addEventListener("click", () => { refreshStatus().catch(() => {}); });
+    document.querySelectorAll("button.st").forEach((b) => {
+      b.addEventListener("click", async () => {
+        const stage = +b.getAttribute("data-s");
+        try {
+          const r = await jpost("/curriculum_stage", { stage });
+          show(r);
+          await refreshStatus();
+        } catch (e) { out.textContent = String(e); }
+      });
+    });
+    document.getElementById("btnLoad").addEventListener("click", async () => {
+      try {
+        out.textContent = "Loading consumer…";
+        const r = await jpost("/consumer/load", {});
+        show(r);
+        await refreshStatus();
+      } catch (e) { out.textContent = String(e); }
+    });
+    document.getElementById("btnReset").addEventListener("click", async () => {
+      try {
+        const r = await jpost("/reset", {});
+        show(r);
+      } catch (e) { out.textContent = String(e); }
+    });
+    document.getElementById("btnStep").addEventListener("click", async () => {
+      const command = document.getElementById("cmd").value.trim() || "PASS";
+      try {
+        const r = await jpost("/step", { action: { command } });
+        show(r);
+      } catch (e) { out.textContent = String(e); }
+    });
+
+    refreshStatus().catch(() => {
+      $("hpill").textContent = "/health: (offline?)";
+    });
+  </script>
+</body>
+</html>

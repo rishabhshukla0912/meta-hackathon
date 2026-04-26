@@ -33,6 +33,7 @@ Or:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any, Dict
 
 try:
@@ -87,6 +88,12 @@ def _dump_model(value: Any) -> Any:
     return value
 
 
+class _StepRequest(BaseModel):
+    """OpenEnv step body: the trainer and playground always wrap the action."""
+
+    action: PromptWarAction
+
+
 def _create_fallback_app() -> FastAPI:
     """Small local server used when Meta OpenEnv is not installed.
 
@@ -95,21 +102,19 @@ def _create_fallback_app() -> FastAPI:
     """
     fallback_app = FastAPI(title="PromptWar_env")
 
-    @fallback_app.get("/")
-    def root() -> Dict[str, Any]:
-        return {
-            "name": "PromptWar_env",
-            "mode": "local-fallback",
-            "openenv_error": str(_OPENENV_IMPORT_ERROR),
-        }
+    @fallback_app.get("/health")
+    def health_fallback() -> Dict[str, str]:
+        """Satisfy Docker/Space health checks when openenv-core is not installed."""
+        return {"status": "HEALTHY"}
 
     @fallback_app.post("/reset")
     def reset() -> Dict[str, Any]:
         return _dump_model(_environment_singleton.reset())
 
     @fallback_app.post("/step")
-    def step(action: PromptWarAction) -> Dict[str, Any]:
-        return _dump_model(_environment_singleton.step(action))
+    def step(req: _StepRequest) -> Dict[str, Any]:
+        # Same wire format as openenv create_app: {"action": {"command": "..."}}.
+        return _dump_model(_environment_singleton.step(req.action))
 
     @fallback_app.get("/state")
     def state() -> Dict[str, Any]:
@@ -204,6 +209,64 @@ def consumer_status() -> Dict[str, Any]:
         "load_error": consumer.load_error,
         "model_id": consumer.config.model_id,
     }
+
+
+# ---------------------------------------------------------------------------
+# Playground (static UI) + API discovery
+# ---------------------------------------------------------------------------
+
+_STATIC_INDEX = Path(__file__).parent / "static" / "index.html"
+
+
+@app.get("/api/info")
+def api_info() -> Dict[str, Any]:
+    """JSON discovery for clients; browsers usually receive ``index.html`` on ``GET /``."""
+    return {
+        "name": "PromptWar_env",
+        "playground": "/",
+        "openenv": "ok" if create_app is not None else "unavailable",
+        "docs": "/docs",
+    }
+
+
+# Serve the Space landing page: HTML for browsers, leave ``GET /`` to OpenEnv
+# for non-browser ``Accept: application/json`` (no ``text/html``) requests.
+if _STATIC_INDEX.is_file():
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.requests import Request
+    from starlette.responses import FileResponse
+
+    class _PlaygroundMiddleware(BaseHTTPMiddleware):
+        async def dispatch(
+            self, request: Request, call_next: Any
+        ) -> Any:  # ASGI: Starlette types vary by version
+            if request.method == "GET" and request.url.path == "/":
+                accept = (request.headers.get("accept") or "").lower()
+                if "text/html" in accept:
+                    return FileResponse(
+                        str(_STATIC_INDEX), media_type="text/html; charset=utf-8"
+                    )
+                if "application/json" in accept and "text/html" not in accept:
+                    return await call_next(request)
+                ua = (request.headers.get("user-agent") or "").lower()
+                if any(
+                    w in ua
+                    for w in (
+                        "mozilla",
+                        "webkit",
+                        "chrome",
+                        "safari",
+                        "edg",
+                        "opr",
+                    )
+                ) and "curl" not in ua:
+                    return FileResponse(
+                        str(_STATIC_INDEX), media_type="text/html; charset=utf-8"
+                    )
+            return await call_next(request)
+
+    # Last registered = outermost; run first and intercept ``GET /`` for browsers.
+    app.add_middleware(_PlaygroundMiddleware)
 
 
 # ---------------------------------------------------------------------------
