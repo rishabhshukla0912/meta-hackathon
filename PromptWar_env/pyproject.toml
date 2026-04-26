@@ -1,0 +1,69 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+[build-system]
+requires = ["setuptools>=75.0", "wheel>=0.44"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openenv-prompt-war"
+version = "0.2.0"
+description = "PromptWar — multi-agent shared-prompt RL environment for OpenEnv"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    # Meta's OpenEnv runtime (FastAPI server + HTTP client types).
+    # Pinned to git until 0.2.x lands on PyPI.
+    "openenv-core @ git+https://github.com/meta-pytorch/OpenEnv.git",
+    # Wire types
+    "pydantic>=2.10",
+    "fastapi>=0.115.6",
+    "uvicorn>=0.32",
+    "httpx>=0.28",
+    # Edit ops + tokenizer
+    "regex>=2024.11.6",
+    "tokenizers>=0.22.0",
+    "transformers>=4.56.0,<6",
+]
+
+[project.optional-dependencies]
+consumer = [
+    # Required to actually load Qwen2.5-0.5B-Instruct as the Consumer Model.
+    "torch>=2.6",
+    "accelerate>=1.9",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+# Run the FastAPI server directly:
+#   uv run --project . server
+#   python -m PromptWar_env.server.app
+server = "PromptWar_env.server.app:main"
+promptwar-rollout-smoke = "PromptWar_env.scripts.rollout_smoke:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = [
+    "PromptWar_env",
+    "PromptWar_env.agents",
+    "PromptWar_env.scripts",
+    "PromptWar_env.server",
+]
+
+[tool.setuptools.package-dir]
+"PromptWar_env" = "."
+"PromptWar_env.agents" = "agents"
+"PromptWar_env.scripts" = "scripts"
+"PromptWar_env.server" = "server"
+
+[tool.setuptools.package-data]
+"PromptWar_env" = ["data/*.json"]
+
+[tool.pyright]
+venvPath = ".."
+venv = ".venv"

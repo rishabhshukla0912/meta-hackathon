@@ -1,0 +1,10 @@
+# Person B trainer-side dependencies. Heavy and GPU-bound — install only on
+# the trainer host. Person A's env host doesn't need these.
+torch>=2.6
+transformers>=4.56.0
+peft>=0.13
+trl>=0.11
+accelerate>=1.0
+datasets>=3.0
+unsloth>=2024.10
+bitsandbytes>=0.43

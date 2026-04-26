@@ -1,0 +1,59 @@
+# macOS / editor noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+.codex
+.claude
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging / build output
+*.egg-info/
+build/
+dist/
+site/
+
+# Local config and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and runtime artifacts
+*.log
+logs/
+tmp/
+temp/
+
+# Jupyter / notebooks
+.ipynb_checkpoints/
+
+# ML / model artifacts
+checkpoints/
+outputs/
+runs/
+wandb/
+mlruns/
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+
+# Local tool state
+.codex/
+.claude/
