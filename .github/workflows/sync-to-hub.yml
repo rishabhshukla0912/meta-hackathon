@@ -1,7 +1,7 @@
 name: Sync to Hugging Face Hub
 on:
   push:
-    branches: [main]
+    branches: [main, jyotsna_version_batch_processing]
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -12,4 +12,4 @@ jobs:
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push --force https://:$HF_TOKEN@huggingface.co/spaces/jshug/meta-hackathon main
+        run: git push --force https://:$HF_TOKEN@huggingface.co/spaces/jshug/meta-hackathon jyotsna_version_batch_processing
