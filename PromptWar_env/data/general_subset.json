@@ -18,5 +18,10 @@
   {"id": "gen_017", "question": "What is machine learning, in one sentence?"},
   {"id": "gen_018", "question": "Name three states of USA."},
   {"id": "gen_019", "question": "How can I improve my sleep quality with one habit change?"},
-  {"id": "gen_020", "question": "Briefly explain what inflation means in economics."}
+  {"id": "gen_020", "question": "Briefly explain what inflation means in economics."},
+  {"id": "gen_021", "question": "What is the main function of the heart in the human body?"},
+  {"id": "gen_022", "question": "Suggest a way to save water at home."},
+  {"id": "gen_023", "question": "What is the difference between a virus and bacteria?"},
+  {"id": "gen_024", "question": "Give an example of a non-renewable energy source."},
+  {"id": "gen_025", "question": "Briefly explain what a black hole is."}
 ]
